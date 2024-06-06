@@ -29,19 +29,15 @@ MODULE_INFO(retpoline, "Y");
 
 static const struct modversion_info ____versions[]
 __used __section("__versions") = {
-	{ 0xb55e8ce, "i2c_register_driver" },
-	{ 0x5b8239ca, "__x86_return_thunk" },
-	{ 0xf1d249f1, "devm_kmalloc" },
-	{ 0x43ee2256, "media_entity_pads_init" },
-	{ 0x95873975, "v4l2_async_register_subdev_sensor" },
-	{ 0xb39c75ca, "_dev_err" },
-	{ 0xc6142812, "v4l2_async_unregister_subdev" },
-	{ 0x80df923a, "i2c_del_driver" },
 	{ 0xbdfb6dbb, "__fentry__" },
+	{ 0x5b8239ca, "__x86_return_thunk" },
+	{ 0x1e6088dd, "i2c_get_adapter" },
+	{ 0x7fbfd07f, "i2c_new_scanned_device" },
+	{ 0x92997ed8, "_printk" },
 	{ 0xfe7d1286, "module_layout" },
 };
 
-MODULE_INFO(depends, "mc,v4l2-fwnode,v4l2-async");
+MODULE_INFO(depends, "");
 
 
-MODULE_INFO(srcversion, "7440528DBEE0FEEDE0FF8C2");
+MODULE_INFO(srcversion, "18C471386160F3A0B3BC845");

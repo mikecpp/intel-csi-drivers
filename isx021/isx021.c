@@ -19,19 +19,6 @@
 #include <media/v4l2-subdev.h>
 #include <media/v4l2-mediabus.h>
 
-#define MAX9295_REG0	0x0000
-#define MAX9295_I2C_1	0x004A
-
-#define MAX9296_CTRL0	0x0010
-#define RESET_LINK	    (0x1 << 6)
-#define RESET_ONESHOT	(0x1 << 5)
-#define AUTO_LINK	    (0x1 << 4)
-#define DUAL_LINK	    (0x0)
-#define LINK_A		    (0x1)
-#define LINK_B		    (0x2)
-#define SPLITTER	    (0x3)
-#define MAX9296_NUM	    (4)
-
 struct isx021 {
 	struct v4l2_subdev sd;
 	struct media_pad pad;
@@ -54,58 +41,26 @@ struct isx021 {
 	bool identified;
 };
 
-static const struct regmap_config isx021_regmap_max9296 = {
-	.reg_bits = 16,
-	.val_bits = 8,
-	.reg_format_endian = REGMAP_ENDIAN_BIG,
-	.val_format_endian = REGMAP_ENDIAN_NATIVE,
-};
-
-static const struct regmap_config isx021_regmap_max9295 = {
-	.reg_bits = 16,
-	.val_bits = 8,
-	.reg_format_endian = REGMAP_ENDIAN_BIG,
-	.val_format_endian = REGMAP_ENDIAN_NATIVE,
-};
-
 #define to_isx021(_sd)	container_of(_sd, struct isx021, sd)
 
-static int max9296_write_8(struct ds5 *state, u16 reg, u8 val)
+static struct i2c_board_info max9296_info = {
+      I2C_BOARD_INFO("max9296", 0x48),
+};
+
+struct i2c_client *client = NULL;
+
+static int max9296_write(u8 *data, u16 len)
 {
-	int ret;
+    pr_info("=== max9296_write() enter ===");
+/*
+    if (i2c_master_send(client, data, len) < len) {
+        pr_err("i2c_master_send() fail!");
+        return -1;
+    }
+*/
+    pr_info("=== max9296_write() exit ===");
 
-	ret = regmap_raw_write(isx021_regmap_max9296, reg, &val, 1);
-	if (ret < 0)
-		dev_err(&state->client->dev, "%s(): i2c write failed %d, 0x%04x = 0x%x\n",
-			__func__, ret, reg, val);
-	else
-		if (state->dfu_dev.dfu_state_flag == DS5_DFU_IDLE)
-			dev_dbg(&state->client->dev, "%s(): i2c write 0x%04x: 0x%x\n",
-				 __func__, reg, val);
-
-	dev_dbg(&state->client->dev, "%s(): (%d), 0x%02x 0x%04x = 0x%02x\n",
-		__func__, ret, state->client->addr, reg, val);
-
-	return ret;
-}
-
-static int max9296_read_8(struct ds5 *state, u16 reg, u8 *val)
-{
-	int ret;
-
-	ret = regmap_raw_read(isx_remap_max9296, reg, val, 1);
-	if (ret < 0)
-		dev_err(&state->client->dev, "%s(): i2c read failed %d, 0x%04x\n",
-			__func__, ret, reg);
-	else
-		if (state->dfu_dev.dfu_state_flag == DS5_DFU_IDLE)
-			dev_info(&state->client->dev, "%s(): i2c read 0x%04x = 0x%x\n",
-				 __func__, reg, *val);
-
-	dev_dbg(&state->client->dev, "%s(): (%d), 0x%02x 0x%04x = 0x%02x\n",
-		__func__, ret, state->client->addr, reg, *val);
-
-	return ret;
+    return 0;
 }
 
 static int isx021_probe(struct i2c_client *client)
@@ -116,6 +71,8 @@ static int isx021_probe(struct i2c_client *client)
 	isx021 = devm_kzalloc(&client->dev, sizeof(*isx021), GFP_KERNEL);
 	if (!isx021)
 		return -ENOMEM;
+
+    // v4l2_i2c_subdev_init(&ov13b->sd, client, &isx021_subdev_ops);
 
     ret = media_entity_pads_init(&isx021->sd.entity, 1, &isx021->pad);
 	if (ret) {
@@ -140,6 +97,31 @@ static void isx021_remove(struct i2c_client *client)
 	media_entity_cleanup(&sd->entity);
 }
 
+static const unsigned short normal_i2c[] = { 0x48, 0x4A, I2C_CLIENT_END };
+
+static int isx021_init(void)
+{
+    u8 data[] = { 0x00, 0x00, 0x00 };    
+    // struct i2c_client *client = i2c_new_client_device(i2c_get_adapter(1), &max9296_info);
+    struct i2c_client *client = i2c_new_scanned_device(i2c_get_adapter(1), &max9296_info, normal_i2c, NULL);
+
+    if (client == NULL) {
+        pr_err("i2c_new_scanned_device() fail!");
+        return -1;
+    }
+
+    pr_info("=== isz021_init ===");
+
+    max9296_write(data, sizeof(data));
+
+    return 0;
+}
+
+static void isx021_exit(void)
+{
+
+}
+
 static struct i2c_driver isx021_i2c_driver = {
 	.driver = {
 		.name = "isx021",
@@ -147,7 +129,10 @@ static struct i2c_driver isx021_i2c_driver = {
 	.probe_new = isx021_probe,
 	.remove    = isx021_remove,
 };
-module_i2c_driver(isx021_i2c_driver);
+// module_i2c_driver(isx021_i2c_driver);
+
+module_init(isx021_init);
+module_exit(isx021_exit);
 
 MODULE_DESCRIPTION("oToCAM ISX021 Driver");
 MODULE_LICENSE("GPL v2");
