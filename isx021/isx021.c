@@ -44,21 +44,21 @@ struct isx021 {
 #define to_isx021(_sd)	container_of(_sd, struct isx021, sd)
 
 static struct i2c_board_info max9296_info = {
-      I2C_BOARD_INFO("max9296", 0x48),
+      I2C_BOARD_INFO("max9296", 0x3D),
 };
 
-struct i2c_client *client = NULL;
+struct i2c_client *_client = NULL;
 
 static int max9296_write(u8 *data, u16 len)
 {
-    pr_info("=== max9296_write() enter ===");
-/*
-    if (i2c_master_send(client, data, len) < len) {
-        pr_err("i2c_master_send() fail!");
+    pr_info("=== max9296_write() enter ===\n");
+
+    if (i2c_master_send(_client, data, len) < len) {
+        pr_err("i2c_master_send() fail!\n");
         return -1;
     }
-*/
-    pr_info("=== max9296_write() exit ===");
+
+    pr_info("=== max9296_write() exit ===\n");
 
     return 0;
 }
@@ -97,20 +97,17 @@ static void isx021_remove(struct i2c_client *client)
 	media_entity_cleanup(&sd->entity);
 }
 
-static const unsigned short normal_i2c[] = { 0x48, 0x4A, I2C_CLIENT_END };
-
 static int isx021_init(void)
 {
     u8 data[] = { 0x00, 0x00, 0x00 };    
-    // struct i2c_client *client = i2c_new_client_device(i2c_get_adapter(1), &max9296_info);
-    struct i2c_client *client = i2c_new_scanned_device(i2c_get_adapter(1), &max9296_info, normal_i2c, NULL);
+    _client = i2c_new_client_device(i2c_get_adapter(3), &max9296_info);
 
-    if (client == NULL) {
+    if (_client == NULL) {
         pr_err("i2c_new_scanned_device() fail!");
         return -1;
     }
 
-    pr_info("=== isz021_init ===");
+    pr_info("=== isx021_init ===");
 
     max9296_write(data, sizeof(data));
 
@@ -119,8 +116,8 @@ static int isx021_init(void)
 
 static void isx021_exit(void)
 {
-
-}
+    i2c_unregister_device(_client);
+}   
 
 static struct i2c_driver isx021_i2c_driver = {
 	.driver = {
