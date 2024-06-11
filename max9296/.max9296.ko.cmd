@@ -1,0 +1,1 @@
+cmd_/home/mike/otocam-drivers/max9296/max9296.ko := ld -r -m elf_x86_64 -z noexecstack --build-id=sha1  -T scripts/module.lds -o /home/mike/otocam-drivers/max9296/max9296.ko /home/mike/otocam-drivers/max9296/max9296.o /home/mike/otocam-drivers/max9296/max9296.mod.o;  true
