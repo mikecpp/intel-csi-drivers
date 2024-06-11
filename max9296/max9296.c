@@ -52,6 +52,10 @@ static struct i2c_adapter *_adapter  = NULL;
 static struct i2c_client  *_max9296  = NULL; 
 static struct i2c_client  *_max9295  = NULL; 
 
+static struct v4l2_subdev _sd;    
+static struct media_pad   _pad;
+static struct v4l2_ctrl_handler _ctrl_handler;
+
 static int max9296_write(uint16_t reg, uint8_t val)
 {
     int ret = 0;
@@ -92,7 +96,7 @@ static int max9295_write(uint16_t reg, uint8_t val)
     return 0;
 }
 
-static void register_init(void)
+static void registers_init(void)
 {
     max9296_write(0x0010, 0x31);
     msleep(100);
@@ -200,8 +204,78 @@ static struct i2c_driver max9295_driver = {
     .id_table  = max9295_id,    
 };
 
+static int max9296_set_stream(struct v4l2_subdev *sd, int enable)
+{
+    pr_info("--> max9296_set_stream()\n");
+
+    return 0;
+}
+
+static int max9296_enum_mbus_code(struct v4l2_subdev *sd, struct v4l2_subdev_state *sd_state, struct v4l2_subdev_mbus_code_enum *code)
+{
+    return 0;
+}
+
+static int max9296_get_pad_format(struct v4l2_subdev *sd,  struct v4l2_subdev_state *sd_state, struct v4l2_subdev_format *fmt)
+{
+    return 0;
+}
+
+static int max9296_set_pad_format(struct v4l2_subdev *sd, struct v4l2_subdev_state *sd_state, struct v4l2_subdev_format *fmt)
+{
+    return 0;
+}
+
+static int max9296_enum_frame_size(struct v4l2_subdev *sd, struct v4l2_subdev_state *sd_state, struct v4l2_subdev_frame_size_enum *fse)
+{
+    return 0;
+}
+
+static int max9296_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
+{
+    return 0;
+}
+
+static const struct v4l2_subdev_video_ops max9296_video_ops = {
+	.s_stream = max9296_set_stream,
+};
+
+static const struct v4l2_subdev_pad_ops max9296_pad_ops = {
+	.enum_mbus_code  = max9296_enum_mbus_code,
+	.get_fmt         = max9296_get_pad_format,
+	.set_fmt         = max9296_set_pad_format,
+	.enum_frame_size = max9296_enum_frame_size,
+};
+
+static const struct v4l2_subdev_ops max9296_subdev_ops = {
+	.video = &max9296_video_ops,
+	.pad   = &max9296_pad_ops,
+};
+
+static const struct media_entity_operations max9296_subdev_entity_ops = {
+	.link_validate = v4l2_subdev_link_validate,
+};
+
+static const struct v4l2_subdev_internal_ops max9296_internal_ops = {
+	.open = max9296_open,
+};
+
+static int max9296_init_controls(void)
+{
+    int ret = 0;
+
+	ret = v4l2_ctrl_handler_init(&_ctrl_handler, 10);
+	if (ret != 0) {
+        return ret;
+    }
+
+	return 0;
+}
+
 static int max9296_init(void)
 {
+    int ret = 0;
+
     _adapter = i2c_get_adapter(I2C_BUS_AVAILABLE);
     if (_adapter == NULL) {
         pr_err("i2c_get_adaptor() fail! \n"); 
@@ -224,7 +298,34 @@ static int max9296_init(void)
     i2c_add_driver(&max9295_driver);
     i2c_put_adapter(_adapter);
 
-    register_init();
+    // Initial max9296/max9295 registers 
+    registers_init();
+
+    // Initial subdev
+    v4l2_i2c_subdev_init(&_sd, _max9296, &max9296_subdev_ops);
+	_sd.internal_ops    = &max9296_internal_ops;
+	_sd.flags          |= V4L2_SUBDEV_FL_HAS_DEVNODE;
+	_sd.entity.ops      = &max9296_subdev_entity_ops;
+	_sd.entity.function = MEDIA_ENT_F_CAM_SENSOR;
+
+    max9296_init_controls();
+
+    // Initail source pad 
+	_pad.flags = MEDIA_PAD_FL_SOURCE;
+	ret = media_entity_pads_init(&_sd.entity, 1, &_pad);
+	if (ret != 0) {
+		pr_err("%s failed:%d\n", __func__, ret);
+		return -1;
+	}
+    pr_info("media_entity_pads_init() OK!\n");
+
+    ret = v4l2_async_register_subdev_sensor(&_sd);
+	if (ret < 0) {
+        // media_entity_cleanup(&_sd.entity);
+        pr_err("v4l2_async_register_subdev_sensor() fail! (%d)", ret);
+		return -1;
+    }
+    pr_info("v4l2_async_register_subdev_sensor() OK!\n");
 
     pr_info("max9296_init() OK!\n");
 
@@ -233,6 +334,9 @@ static int max9296_init(void)
 
 static void max9296_exit(void)
 {
+    v4l2_async_unregister_subdev(&_sd);
+    media_entity_cleanup(&_sd.entity);    
+
     i2c_unregister_device(_max9295);
     i2c_unregister_device(_max9296);
 
