@@ -1,23 +1,15 @@
+#include <linux/acpi.h>
+#include <linux/clk.h>
 #include <linux/delay.h>
-#include <linux/gpio.h>
-#include <linux/i2c.h>
-#include <linux/kernel.h>
-#include <linux/media.h>
-#include <linux/module.h>
-#include <linux/of_gpio.h>
+#include <linux/gpio/consumer.h>
 #include <linux/regmap.h>
-#include <linux/regulator/consumer.h>
-#include <linux/slab.h>
-#include <linux/string.h>
-#include <linux/videodev2.h>
-#include <linux/version.h>
-
-#include <linux/ipu-isys.h>
-#include <media/media-entity.h>
+#include <linux/i2c.h>
+#include <linux/module.h>
+#include <linux/pm_runtime.h>
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-subdev.h>
-#include <media/v4l2-mediabus.h>
+#include <media/v4l2-fwnode.h>
 
 #define I2C_BUS_AVAILABLE               1
 #define DEVICE_NAME_MAX9296             "max9296" 
@@ -26,31 +18,9 @@
 #define DEVICE_ADDR_MAX9295             0x62
 #define RES_128_64                      0 
 
-static struct i2c_board_info max9296_info = {
-    I2C_BOARD_INFO(DEVICE_NAME_MAX9296, DEVICE_ADDR_MAX9296)    
-};
-
-static const struct i2c_device_id max9296_id[] = {
-  { DEVICE_NAME_MAX9296, 0 },
-  { }
-};
-
-MODULE_DEVICE_TABLE(i2c, max9296_id);
-
-static struct i2c_board_info max9295_info = {
-    I2C_BOARD_INFO(DEVICE_NAME_MAX9295, DEVICE_ADDR_MAX9295)    
-};
-
-static const struct i2c_device_id max9295_id[] = {
-  { DEVICE_NAME_MAX9295, 0 },
-  { }
-};
-
-MODULE_DEVICE_TABLE(i2c, max9295_id);
-
-static struct i2c_adapter *_adapter  = NULL; 
-static struct i2c_client  *_max9296  = NULL; 
-static struct i2c_client  *_max9295  = NULL; 
+static struct i2c_client *_client = NULL; 
+static struct regmap *_regmap_max9296  = NULL; 
+static struct regmap *_regmap_max9295  = NULL; 
 
 static struct v4l2_subdev _sd;    
 static struct media_pad   _pad;
@@ -59,19 +29,15 @@ static struct v4l2_ctrl_handler _ctrl_handler;
 static int max9296_write(uint16_t reg, uint8_t val)
 {
     int ret = 0;
-    uint8_t data[3] = {0};    
 
-    data[0] = (reg & 0xFF00) >> 8; 
-    data[1] = (reg & 0x00FF); 
-    data[2] = val;
+    _client->addr = DEVICE_ADDR_MAX9296;
+	ret = regmap_raw_write(_regmap_max9296, reg, &val, 1);
+	if (ret < 0) {
+		pr_err("%s(): i2c write failed %d, 0x%04x = 0x%x\n", __func__, ret, reg, val);
+        return -1;
+    }   
 
-    pr_info("max9296_write: %02X %02X %02X\n", data[0], data[1], data[2]); 
-
-    ret = i2c_master_send(_max9296, data, 3);
-    if ( ret < 0) {
-        pr_err("max9296_write: i2c_master_send() fail! (%d) \n", ret);
-        return ret;
-    }
+    // pr_info("max9296_write: %04x %02x\n", reg, val); 
 
     return 0;
 }
@@ -79,19 +45,15 @@ static int max9296_write(uint16_t reg, uint8_t val)
 static int max9295_write(uint16_t reg, uint8_t val)
 {
     int ret = 0;
-    uint8_t data[3] = {0};    
 
-    data[0] = (reg & 0xFF00) >> 8; 
-    data[1] = (reg & 0x00FF); 
-    data[2] = val;
+    _client->addr = DEVICE_ADDR_MAX9295;
+	ret = regmap_raw_write(_regmap_max9295, reg, &val, 1);
+	if (ret < 0) {
+		pr_err("%s(): i2c write failed %d, 0x%04x = 0x%x\n", __func__, ret, reg, val);
+        return -1;
+    }   
 
-    pr_info("max9295_write: %02X %02X %02X\n", data[0], data[1], data[2]); 
-
-    ret = i2c_master_send(_max9295, data, 3);
-    if ( ret < 0) {
-        pr_err("max9295_write: i2c_master_send() fail! (%d) \n", ret);
-        return ret;
-    }
+    // pr_info("max9295_write: %04x %02x\n", reg, val); 
 
     return 0;
 }
@@ -159,50 +121,6 @@ static void registers_init(void)
     max9295_write(0x02D4, 0x60);
     max9295_write(0x02D3, 0x90);
 }
-
-static int max9296_probe(struct i2c_client *client)
-{
-    pr_info("max9296_probe() OK!\n");    
-
-	return 0; 
-}
-
-static void max9296_remove(struct i2c_client *client)
-{
-    pr_info("max9296_remove() OK!\n");    
-}
-
-static int max9295_probe(struct i2c_client *client)
-{
-    pr_info("max9295_probe() OK!\n");    
-
-	return 0; 
-}
-
-static void max9295_remove(struct i2c_client *client)
-{
-    pr_info("max9295_remove() OK!\n");    
-}
-
-static struct i2c_driver max9296_driver = {
-	.driver = {
-		.name  = DEVICE_NAME_MAX9296,
-        .owner = THIS_MODULE,        
-	},
-	.probe_new = max9296_probe,
-	.remove    = max9296_remove,
-    .id_table  = max9296_id,    
-};
-
-static struct i2c_driver max9295_driver = {
-	.driver = {
-		.name  = DEVICE_NAME_MAX9295,
-        .owner = THIS_MODULE,        
-	},
-	.probe_new = max9295_probe,
-	.remove    = max9295_remove,
-    .id_table  = max9295_id,    
-};
 
 static int max9296_set_stream(struct v4l2_subdev *sd, int enable)
 {
@@ -272,40 +190,53 @@ static int max9296_init_controls(void)
 	return 0;
 }
 
-static int max9296_init(void)
+static const struct regmap_config max9296_regmap_config = {
+	.reg_bits = 16,
+	.val_bits = 8,
+	.reg_format_endian = REGMAP_ENDIAN_NATIVE,
+	.val_format_endian = REGMAP_ENDIAN_NATIVE,
+};
+
+static const struct regmap_config max9295_regmap_config = {
+	.reg_bits = 16,
+	.val_bits = 8,
+	.reg_format_endian = REGMAP_ENDIAN_NATIVE,
+	.val_format_endian = REGMAP_ENDIAN_NATIVE,
+};
+
+struct v4l2_device _v4l2_dev;
+
+static int max9296_probe(struct i2c_client *client)
 {
     int ret = 0;
 
-    _adapter = i2c_get_adapter(I2C_BUS_AVAILABLE);
-    if (_adapter == NULL) {
-        pr_err("i2c_get_adaptor() fail! \n"); 
-        return -1;
-    }
+    _client = client;
 
-    _max9296 = i2c_new_client_device(_adapter, &max9296_info);
-    if (_max9296 == NULL) {
-        pr_err("i2c_new_client_device() fail! \n"); 
-        return -1;
-    }
+    pr_info("max9296_probe() OK!\n");    
 
-    _max9295 = i2c_new_client_device(_adapter, &max9295_info);
-    if (_max9295 == NULL) {
-        pr_err("i2c_new_client_device() fail! \n"); 
-        return -1;
-    }
+	_regmap_max9296 = regmap_init_i2c(client, &max9296_regmap_config);
+	if (IS_ERR(_regmap_max9296)) {
+		pr_err("regmap_max9296 init failed! \n");
+		return -1;
+	}
 
-    i2c_add_driver(&max9296_driver);
-    i2c_add_driver(&max9295_driver);
-    i2c_put_adapter(_adapter);
+	_regmap_max9295 = regmap_init_i2c(client, &max9295_regmap_config);
+	if (IS_ERR(_regmap_max9295)) {
+		pr_err("regmap_max9295 init failed! \n");
+		return -1;
+	}
 
     // Initial max9296/max9295 registers 
     registers_init();
 
     // Initial subdev
-    v4l2_i2c_subdev_init(&_sd, _max9296, &max9296_subdev_ops);
+    v4l2_i2c_subdev_init(&_sd, client, &max9296_subdev_ops);
+
 	_sd.internal_ops    = &max9296_internal_ops;
 	_sd.flags          |= V4L2_SUBDEV_FL_HAS_DEVNODE;
+    
 	_sd.entity.ops      = &max9296_subdev_entity_ops;
+    _sd.entity.obj_type = MEDIA_ENTITY_TYPE_V4L2_SUBDEV;
 	_sd.entity.function = MEDIA_ENT_F_CAM_SENSOR;
 
     max9296_init_controls();
@@ -319,36 +250,58 @@ static int max9296_init(void)
 	}
     pr_info("media_entity_pads_init() OK!\n");
 
-    ret = v4l2_async_register_subdev_sensor(&_sd);
+    // V4L2 Device initial 
+    ret = v4l2_device_register(&client->dev, &_v4l2_dev);
+    if (ret < 0) {
+        pr_err("v4l2_device_register()) fail! (%d)", ret);        
+        return ret;
+    }
+    pr_info("v4l2 device name = %s\n", _v4l2_dev.name);
+
+    // V4L2 Sub Device initial 
+    ret = v4l2_device_register_subdev(&_v4l2_dev, &_sd);
+    if (ret < 0) {
+        pr_err("v4l2_device_register_subdev() fail! (%d)", ret);        
+        return ret;
+    }
+    pr_info("v4l2_device_register_subdev() OK!\n");
+
+    ret = v4l2_device_register_subdev_nodes(&_v4l2_dev);
 	if (ret < 0) {
-        // media_entity_cleanup(&_sd.entity);
-        pr_err("v4l2_async_register_subdev_sensor() fail! (%d)", ret);
+        pr_err("v4l2_device_register_subdev_nodes() fail! (%d)", ret);
 		return -1;
     }
-    pr_info("v4l2_async_register_subdev_sensor() OK!\n");
 
-    pr_info("max9296_init() OK!\n");
-
-    return 0;
+	return 0; 
 }
 
-static void max9296_exit(void)
+static void max9296_remove(struct i2c_client *client)
 {
-    v4l2_async_unregister_subdev(&_sd);
-    media_entity_cleanup(&_sd.entity);    
+	v4l2_device_unregister_subdev(&_sd);
+	media_entity_cleanup(&_sd.entity);
 
-    i2c_unregister_device(_max9295);
-    i2c_unregister_device(_max9296);
+    pr_info("max9296_remove() OK!\n");    
+}
 
-    i2c_del_driver(&max9295_driver);
-    i2c_del_driver(&max9296_driver);
+static const struct acpi_device_id max9296_acpi_ids[] = {
+	{"MAX9296"},
+	{ }
+};
 
-    pr_info("max9296_exit() OK!\n");
-}   
+MODULE_DEVICE_TABLE(acpi, max9296_acpi_ids);
 
-module_init(max9296_init);
-module_exit(max9296_exit);
+static struct i2c_driver max9296_driver = {
+	.driver = {
+		.name  = DEVICE_NAME_MAX9296,
+		.acpi_match_table = ACPI_PTR(max9296_acpi_ids),        
+	},
+	.probe_new = max9296_probe,
+	.remove    = max9296_remove,
+	.flags     = I2C_DRV_ACPI_WAIVE_D0_PROBE,    
+};
 
+module_i2c_driver(max9296_driver); 
+
+MODULE_AUTHOR("Mike Chen <mikechen@otobrite.com>");
 MODULE_DESCRIPTION("oToCAM MAx9296 Driver");
 MODULE_LICENSE("GPL v2");
-MODULE_VERSION("1.0.0");
