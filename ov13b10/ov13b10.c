@@ -759,8 +759,7 @@ static int ov13b10_write_regs(struct ov13b10 *ov13b,
 	return 0;
 }
 
-static int ov13b10_write_reg_list(struct ov13b10 *ov13b,
-				  const struct ov13b10_reg_list *r_list)
+static int ov13b10_write_reg_list(struct ov13b10 *ov13b, const struct ov13b10_reg_list *r_list)
 {
 	return ov13b10_write_regs(ov13b, r_list->regs, r_list->num_of_regs);
 }
@@ -770,17 +769,15 @@ static int ov13b10_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 {
 	const struct ov13b10_mode *default_mode = &supported_modes[0];
 	struct ov13b10 *ov13b = to_ov13b10(sd);
-	struct v4l2_mbus_framefmt *try_fmt = v4l2_subdev_get_try_format(sd,
-									fh->state,
-									0);
+	struct v4l2_mbus_framefmt *try_fmt = v4l2_subdev_get_try_format(sd, fh->state, 0);
 
 	mutex_lock(&ov13b->mutex);
 
 	/* Initialize try_fmt */
-	try_fmt->width = default_mode->width;
+	try_fmt->width  = default_mode->width;
 	try_fmt->height = default_mode->height;
-	try_fmt->code = MEDIA_BUS_FMT_SGRBG10_1X10;
-	try_fmt->field = V4L2_FIELD_NONE;
+	try_fmt->code   = MEDIA_BUS_FMT_SGRBG10_1X10;
+	try_fmt->field  = V4L2_FIELD_NONE;
 
 	/* No crop or compose */
 	mutex_unlock(&ov13b->mutex);
@@ -1186,16 +1183,13 @@ static int ov13b10_start_streaming(struct ov13b10 *ov13b)
 	if (ret)
 		return ret;
 
-	return ov13b10_write_reg(ov13b, OV13B10_REG_MODE_SELECT,
-				 OV13B10_REG_VALUE_08BIT,
-				 OV13B10_MODE_STREAMING);
+	return ov13b10_write_reg(ov13b, OV13B10_REG_MODE_SELECT, OV13B10_REG_VALUE_08BIT, OV13B10_MODE_STREAMING);
 }
 
 /* Stop streaming */
 static int ov13b10_stop_streaming(struct ov13b10 *ov13b)
 {
-	return ov13b10_write_reg(ov13b, OV13B10_REG_MODE_SELECT,
-				 OV13B10_REG_VALUE_08BIT, OV13B10_MODE_STANDBY);
+	return ov13b10_write_reg(ov13b, OV13B10_REG_MODE_SELECT, OV13B10_REG_VALUE_08BIT, OV13B10_MODE_STANDBY);
 }
 
 static int ov13b10_set_stream(struct v4l2_subdev *sd, int enable)
@@ -1276,15 +1270,15 @@ static const struct v4l2_subdev_video_ops ov13b10_video_ops = {
 };
 
 static const struct v4l2_subdev_pad_ops ov13b10_pad_ops = {
-	.enum_mbus_code = ov13b10_enum_mbus_code,
-	.get_fmt = ov13b10_get_pad_format,
-	.set_fmt = ov13b10_set_pad_format,
+	.enum_mbus_code  = ov13b10_enum_mbus_code,
+	.get_fmt         = ov13b10_get_pad_format,
+	.set_fmt         = ov13b10_set_pad_format,
 	.enum_frame_size = ov13b10_enum_frame_size,
 };
 
 static const struct v4l2_subdev_ops ov13b10_subdev_ops = {
 	.video = &ov13b10_video_ops,
-	.pad = &ov13b10_pad_ops,
+	.pad   = &ov13b10_pad_ops,
 };
 
 static const struct media_entity_operations ov13b10_subdev_entity_ops = {
@@ -1558,9 +1552,9 @@ static int ov13b10_probe(struct i2c_client *client)
 		goto error_power_off;
 
 	/* Initialize subdev */
-	ov13b->sd.internal_ops = &ov13b10_internal_ops;
-	ov13b->sd.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
-	ov13b->sd.entity.ops = &ov13b10_subdev_entity_ops;
+	ov13b->sd.internal_ops    = &ov13b10_internal_ops;
+	ov13b->sd.flags          |= V4L2_SUBDEV_FL_HAS_DEVNODE;
+	ov13b->sd.entity.ops      = &ov13b10_subdev_entity_ops;
 	ov13b->sd.entity.function = MEDIA_ENT_F_CAM_SENSOR;
 
 	/* Initialize source pad */

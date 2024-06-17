@@ -6,10 +6,14 @@
 #include <linux/i2c.h>
 #include <linux/module.h>
 #include <linux/pm_runtime.h>
+
 #include <media/v4l2-ctrls.h>
 #include <media/v4l2-device.h>
 #include <media/v4l2-subdev.h>
 #include <media/v4l2-fwnode.h>
+#include <media/v4l2-event.h>
+#include <media/v4l2-ioctl.h>
+#include <media/v4l2-async.h>
 
 #define I2C_BUS_AVAILABLE               1
 #define DEVICE_NAME_MAX9296             "max9296" 
@@ -18,20 +22,25 @@
 #define DEVICE_ADDR_MAX9295             0x62
 #define RES_128_64                      0 
 
-static struct i2c_client *_client = NULL; 
-static struct regmap *_regmap_max9296  = NULL; 
-static struct regmap *_regmap_max9295  = NULL; 
+struct max9296 {
+	struct v4l2_subdev       sd;
+	struct media_pad         pad;
+    struct v4l2_ctrl_handler ctrl_handler;
+    struct v4l2_device       v4l2_dev;
+    struct media_device      media_dev;
+    struct i2c_client        *client;         
+    struct regmap            *regmap_max9296;
+    struct regmap            *regmap_max9295;
+	struct mutex             mutex;
+	bool                     streaming;
+};
 
-static struct v4l2_subdev _sd;    
-static struct media_pad   _pad;
-static struct v4l2_ctrl_handler _ctrl_handler;
-
-static int max9296_write(uint16_t reg, uint8_t val)
+static int max9296_write(struct max9296 *sensor, uint16_t reg, uint8_t val)
 {
     int ret = 0;
-
-    _client->addr = DEVICE_ADDR_MAX9296;
-	ret = regmap_raw_write(_regmap_max9296, reg, &val, 1);
+    
+    sensor->client->addr = DEVICE_ADDR_MAX9296;
+	ret = regmap_write(sensor->regmap_max9296, reg, val);
 	if (ret < 0) {
 		pr_err("%s(): i2c write failed %d, 0x%04x = 0x%x\n", __func__, ret, reg, val);
         return -1;
@@ -42,84 +51,85 @@ static int max9296_write(uint16_t reg, uint8_t val)
     return 0;
 }
 
-static int max9295_write(uint16_t reg, uint8_t val)
+static int max9295_write(struct max9296 *sensor, uint16_t reg, uint8_t val)
 {
     int ret = 0;
 
-    _client->addr = DEVICE_ADDR_MAX9295;
-	ret = regmap_raw_write(_regmap_max9295, reg, &val, 1);
+    sensor->client->addr = DEVICE_ADDR_MAX9295;
+	ret = regmap_write(sensor->regmap_max9296, reg, val);
 	if (ret < 0) {
 		pr_err("%s(): i2c write failed %d, 0x%04x = 0x%x\n", __func__, ret, reg, val);
         return -1;
     }   
+    sensor->client->addr = DEVICE_ADDR_MAX9296;
 
     // pr_info("max9295_write: %04x %02x\n", reg, val); 
 
     return 0;
 }
 
-static void registers_init(void)
+static void registers_init(struct max9296 *sensor)
 {
-    max9296_write(0x0010, 0x31);
+    max9296_write(sensor, 0x0010, 0x31);
     msleep(100);
 
-    max9295_write(0x0010, 0x21);
+    max9295_write(sensor, 0x0010, 0x21);
     msleep(100);
 
     // max9295
-    max9295_write(0x0330, 0x00);
-    max9295_write(0x0332, 0xEE);
-    max9295_write(0x0333, 0xE4);
-    max9295_write(0x0331, 0x33);
-    max9295_write(0x0311, 0xF0);
-    max9295_write(0x0308, 0x6F);
-    max9295_write(0x0314, 0x5E);
-    max9295_write(0x0316, 0x75);
-    max9295_write(0x0318, 0x52);
-    max9295_write(0x031A, 0x22);
-    max9295_write(0x0002, 0x73);
+    max9295_write(sensor, 0x0330, 0x00);
+    max9295_write(sensor, 0x0332, 0xEE);
+    max9295_write(sensor, 0x0333, 0xE4);
+    max9295_write(sensor, 0x0331, 0x33);
+    max9295_write(sensor, 0x0311, 0xF0);
+    max9295_write(sensor, 0x0308, 0x6F);
+    max9295_write(sensor, 0x0314, 0x5E);
+    max9295_write(sensor, 0x0316, 0x75);
+    max9295_write(sensor, 0x0318, 0x52);
+    max9295_write(sensor, 0x031A, 0x22);
+    max9295_write(sensor, 0x0002, 0x73);
 
     // max9296
-    max9296_write(0x0330, 0x04);
-    max9296_write(0x0333, 0x4E);
-    max9296_write(0x0334, 0xE4);
-    max9296_write(0x040A, 0x00);
-    max9296_write(0x044A, 0xD0);
-    max9296_write(0x048A, 0x00);
-    max9296_write(0x04CA, 0x00);
+    max9296_write(sensor, 0x0330, 0x04);
+    max9296_write(sensor, 0x0333, 0x4E);
+    max9296_write(sensor, 0x0334, 0xE4);
+    max9296_write(sensor, 0x040A, 0x00);
+    max9296_write(sensor, 0x044A, 0xD0);
+    max9296_write(sensor, 0x048A, 0x00);
+    max9296_write(sensor, 0x04CA, 0x00);
 
-    max9296_write(0x031D, 0x00);
-    max9296_write(0x0320, 0x2A);
-    max9296_write(0x0323, 0x00);
-    max9296_write(0x0326, 0x00);
-    max9296_write(0x0050, 0x00);
-    max9296_write(0x0051, 0x01);
-    max9296_write(0x0052, 0x02);
-    max9296_write(0x0053, 0x03);
-    max9296_write(0x0332, 0xF0);
+    max9296_write(sensor, 0x031D, 0x00);
+    max9296_write(sensor, 0x0320, 0x2A);
+    max9296_write(sensor, 0x0323, 0x00);
+    max9296_write(sensor, 0x0326, 0x00);
+    max9296_write(sensor, 0x0050, 0x00);
+    max9296_write(sensor, 0x0051, 0x01);
+    max9296_write(sensor, 0x0052, 0x02);
+    max9296_write(sensor, 0x0053, 0x03);
+    max9296_write(sensor, 0x0332, 0xF0);
 
-    max9296_write(0x040B, 0x07);
-    max9296_write(0x042D, 0x15);
-    max9296_write(0x040D, 0x1E);
-    max9296_write(0x040E, 0x1E);
-    max9296_write(0x040F, 0x00);
-    max9296_write(0x0410, 0x00);
-    max9296_write(0x0411, 0x01);
-    max9296_write(0x0412, 0x01);
+    max9296_write(sensor, 0x040B, 0x07);
+    max9296_write(sensor, 0x042D, 0x15);
+    max9296_write(sensor, 0x040D, 0x1E);
+    max9296_write(sensor, 0x040E, 0x1E);
+    max9296_write(sensor, 0x040F, 0x00);
+    max9296_write(sensor, 0x0410, 0x00);
+    max9296_write(sensor, 0x0411, 0x01);
+    max9296_write(sensor, 0x0412, 0x01);
 
-    max9296_write(0x044B, 0x01);
-    max9296_write(0x046D, 0x01);
-    max9296_write(0x044D, 0x35);
-    max9296_write(0x044E, 0x35);
-    max9296_write(0x048B, 0x01);
-    max9296_write(0x04AD, 0x01);
-    max9296_write(0x048D, 0x12);
-    max9296_write(0x048E, 0x12);
+    max9296_write(sensor, 0x044B, 0x01);
+    max9296_write(sensor, 0x046D, 0x01);
+    max9296_write(sensor, 0x044D, 0x35);
+    max9296_write(sensor, 0x044E, 0x35);
+    max9296_write(sensor, 0x048B, 0x01);
+    max9296_write(sensor, 0x04AD, 0x01);
+    max9296_write(sensor, 0x048D, 0x12);
+    max9296_write(sensor, 0x048E, 0x12);
 
-    max9295_write(0x02BF, 0x60);
-    max9295_write(0x02BE, 0x90);
-    max9295_write(0x02D4, 0x60);
-    max9295_write(0x02D3, 0x90);
+    max9295_write(sensor, 0x02BF, 0x60);
+    max9295_write(sensor, 0x02BE, 0x90);
+    max9295_write(sensor, 0x02D4, 0x60);
+    max9295_write(sensor, 0x02D3, 0x90);
 }
 
 static int max9296_set_stream(struct v4l2_subdev *sd, int enable)
@@ -131,26 +141,36 @@ static int max9296_set_stream(struct v4l2_subdev *sd, int enable)
 
 static int max9296_enum_mbus_code(struct v4l2_subdev *sd, struct v4l2_subdev_state *sd_state, struct v4l2_subdev_mbus_code_enum *code)
 {
+    pr_info("--> max9296_enum_mbus_code()\n");
+
     return 0;
 }
 
 static int max9296_get_pad_format(struct v4l2_subdev *sd,  struct v4l2_subdev_state *sd_state, struct v4l2_subdev_format *fmt)
 {
+    pr_info("--> max9296_get_pad_format()\n");
+
     return 0;
 }
 
 static int max9296_set_pad_format(struct v4l2_subdev *sd, struct v4l2_subdev_state *sd_state, struct v4l2_subdev_format *fmt)
 {
+    pr_info("--> max9296_set_pad_format()\n");
+
     return 0;
 }
 
 static int max9296_enum_frame_size(struct v4l2_subdev *sd, struct v4l2_subdev_state *sd_state, struct v4l2_subdev_frame_size_enum *fse)
 {
+    pr_info("--> max9296_enum_frame_size()\n");
+
     return 0;
 }
 
 static int max9296_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 {
+    pr_info("--> max9296_open()\n");
+
     return 0;
 }
 
@@ -178,11 +198,11 @@ static const struct v4l2_subdev_internal_ops max9296_internal_ops = {
 	.open = max9296_open,
 };
 
-static int max9296_init_controls(void)
+static int max9296_init_controls(struct max9296 *sensor)
 {
     int ret = 0;
 
-	ret = v4l2_ctrl_handler_init(&_ctrl_handler, 10);
+	ret = v4l2_ctrl_handler_init(&sensor->ctrl_handler, 10);
 	if (ret != 0) {
         return ret;
     }
@@ -209,76 +229,119 @@ struct v4l2_device _v4l2_dev;
 static int max9296_probe(struct i2c_client *client)
 {
     int ret = 0;
+    struct max9296 *sensor;
+    dev_t  *dev_num = &client->dev.devt;
 
-    _client = client;
-
+    // _client = client;
     pr_info("max9296_probe() OK!\n");    
+	sensor = devm_kzalloc(&client->dev, sizeof(*sensor), GFP_KERNEL);
+	if (!sensor)
+		return -ENOMEM;
 
-	_regmap_max9296 = regmap_init_i2c(client, &max9296_regmap_config);
-	if (IS_ERR(_regmap_max9296)) {
+    mutex_init(&sensor->mutex);
+
+    sensor->client = client;
+    v4l2_set_subdevdata(&sensor->sd, sensor);
+    
+	sensor->regmap_max9296 = devm_regmap_init_i2c(sensor->client, &max9296_regmap_config);
+	if (IS_ERR(sensor->regmap_max9296)) {
 		pr_err("regmap_max9296 init failed! \n");
 		return -1;
 	}
 
-	_regmap_max9295 = regmap_init_i2c(client, &max9295_regmap_config);
-	if (IS_ERR(_regmap_max9295)) {
-		pr_err("regmap_max9295 init failed! \n");
-		return -1;
-	}
-
     // Initial max9296/max9295 registers 
-    registers_init();
+    registers_init(sensor);
 
     // Initial subdev
-    v4l2_i2c_subdev_init(&_sd, client, &max9296_subdev_ops);
+    v4l2_i2c_subdev_init(&sensor->sd, sensor->client, &max9296_subdev_ops);
 
-	_sd.internal_ops    = &max9296_internal_ops;
-	_sd.flags          |= V4L2_SUBDEV_FL_HAS_DEVNODE;
+    sensor->sd.owner           = NULL;
+	sensor->sd.internal_ops    = &max9296_internal_ops;
+    sensor->sd.grp_id          = *dev_num;
+	sensor->sd.flags          |= V4L2_SUBDEV_FL_HAS_DEVNODE;
+    sensor->sd.entity.ops      = &max9296_subdev_entity_ops;
+    sensor->sd.entity.obj_type = MEDIA_ENTITY_TYPE_V4L2_SUBDEV;
+	sensor->sd.entity.function = MEDIA_ENT_F_CAM_SENSOR;
+	sensor->pad.flags          = MEDIA_PAD_FL_SOURCE;
+
+    ret = media_entity_pads_init(&sensor->sd.entity, 1, &sensor->pad); 
+    if (ret < 0) {
+        pr_err("media_entity_pads_init() fail! (%d)", ret);        
+        return ret;
+    }
+
+    max9296_init_controls(sensor);
+
+    // V4L2 Media Device Initial 
+    sensor->media_dev.dev  = &client->dev;
+    sensor->media_dev.ops  = NULL; 
+    strscpy(sensor->media_dev.model, "max9296", 4);  
     
-	_sd.entity.ops      = &max9296_subdev_entity_ops;
-    _sd.entity.obj_type = MEDIA_ENTITY_TYPE_V4L2_SUBDEV;
-	_sd.entity.function = MEDIA_ENT_F_CAM_SENSOR;
-
-    max9296_init_controls();
-
-    // Initail source pad 
-	_pad.flags = MEDIA_PAD_FL_SOURCE;
-	ret = media_entity_pads_init(&_sd.entity, 1, &_pad);
-	if (ret != 0) {
-		pr_err("%s failed:%d\n", __func__, ret);
-		return -1;
-	}
-    pr_info("media_entity_pads_init() OK!\n");
+    media_device_init(&sensor->media_dev);
+	ret = media_device_register(&sensor->media_dev);    
+    if (ret < 0) {
+        pr_err("media_device_register() fail! (%d)", ret);        
+        return ret;
+    }
+    sensor->v4l2_dev.mdev = &sensor->media_dev;
 
     // V4L2 Device initial 
-    ret = v4l2_device_register(&client->dev, &_v4l2_dev);
+    ret = v4l2_device_register(&sensor->client->dev, &sensor->v4l2_dev);
     if (ret < 0) {
         pr_err("v4l2_device_register()) fail! (%d)", ret);        
         return ret;
     }
-    pr_info("v4l2 device name = %s\n", _v4l2_dev.name);
+    pr_info("v4l2 device name = %s\n", sensor->v4l2_dev.name);
 
     // V4L2 Sub Device initial 
-    ret = v4l2_device_register_subdev(&_v4l2_dev, &_sd);
+    ret = v4l2_device_register_subdev(&sensor->v4l2_dev, &sensor->sd);
     if (ret < 0) {
         pr_err("v4l2_device_register_subdev() fail! (%d)", ret);        
         return ret;
     }
     pr_info("v4l2_device_register_subdev() OK!\n");
 
-    ret = v4l2_device_register_subdev_nodes(&_v4l2_dev);
+    ret = v4l2_device_register_subdev_nodes(&sensor->v4l2_dev);
 	if (ret < 0) {
         pr_err("v4l2_device_register_subdev_nodes() fail! (%d)", ret);
 		return -1;
     }
+
+/*
+	ret = media_entity_pads_init(&sensor->sd.entity, 1, &sensor->pad);
+	if (ret != 0) {
+		pr_err("%s failed:%d\n", __func__, ret);
+		return -1;
+	}
+*/
+
+/*
+	ret = media_create_pad_link(&sensor->sd.entity, 0, &sensor->sd.entity, 1, MEDIA_LNK_FL_IMMUTABLE | MEDIA_LNK_FL_ENABLED);    
+	if (ret < 0) {
+        pr_err("media_create_pad_link()) fail! (%d)", ret);
+		return -1;
+    }
+*/
+
+/*
+    ret = v4l2_async_register_subdev_sensor(&sensor->sd);
+    if (ret != 0) {
+        pr_err("v4l2_async_register_subdev_sensor() fail! (%d)", ret); 
+        return ret;
+    }
+    pr_info("v4l2_async_register_subdev_sensor() OK! \n");
+*/
 
 	return 0; 
 }
 
 static void max9296_remove(struct i2c_client *client)
 {
-	v4l2_device_unregister_subdev(&_sd);
-	media_entity_cleanup(&_sd.entity);
+	struct v4l2_subdev *sd = i2c_get_clientdata(client);
+
+    // v4l2_async_unregister_subdev(sd);
+	v4l2_device_unregister_subdev(sd);
+	media_entity_cleanup(&sd->entity);
 
     pr_info("max9296_remove() OK!\n");    
 }

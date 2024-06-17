@@ -1657,7 +1657,7 @@ static const struct v4l2_subdev_pad_ops ds5_motion_t_pad_ops = {
 };
 
 static const struct v4l2_subdev_ops ds5_motion_t_subdev_ops = {
-	.pad = &ds5_motion_t_pad_ops,
+	.pad   = &ds5_motion_t_pad_ops,
 	.video = &ds5_sensor_video_ops,
 };
 
@@ -1671,20 +1671,20 @@ static const struct v4l2_subdev_pad_ops ds5_rgb_pad_ops = {
 };
 
 static const struct v4l2_subdev_ops ds5_rgb_subdev_ops = {
-	.pad = &ds5_rgb_pad_ops,
+	.pad   = &ds5_rgb_pad_ops,
 	.video = &ds5_sensor_video_ops,
 };
 
 static const struct v4l2_subdev_pad_ops ds5_imu_pad_ops = {
-	.enum_mbus_code		= ds5_sensor_enum_mbus_code,
-	.enum_frame_size	= ds5_sensor_enum_frame_size,
+	.enum_mbus_code		    = ds5_sensor_enum_mbus_code,
+	.enum_frame_size	    = ds5_sensor_enum_frame_size,
 	.enum_frame_interval	= ds5_sensor_enum_frame_interval,
-	.get_fmt		= ds5_sensor_get_fmt,
-	.set_fmt		= ds5_sensor_set_fmt,
+	.get_fmt		        = ds5_sensor_get_fmt,
+	.set_fmt		        = ds5_sensor_set_fmt,
 };
 
 static const struct v4l2_subdev_ops ds5_imu_subdev_ops = {
-	.pad = &ds5_imu_pad_ops,
+	.pad   = &ds5_imu_pad_ops,
 	.video = &ds5_sensor_video_ops,
 };
 
@@ -3258,11 +3258,11 @@ static int ds5_sensor_init(struct i2c_client *c, struct ds5 *state,
 		struct ds5_sensor *sensor, const struct v4l2_subdev_ops *ops,
 		const char *name)
 {
-	struct v4l2_subdev *sd = &sensor->sd;
-	struct media_entity *entity = &sensor->sd.entity;
-	struct media_pad *pad = &sensor->pad;
-	dev_t *dev_num = &state->client->dev.devt;
-	struct d4xx_pdata *dpdata = c->dev.platform_data;
+	struct v4l2_subdev  *sd      = &sensor->sd;
+	struct media_entity *entity  = &sensor->sd.entity;
+	struct media_pad    *pad     = &sensor->pad;
+	dev_t               *dev_num = &state->client->dev.devt;
+	struct d4xx_pdata   *dpdata  = c->dev.platform_data;
 
 	v4l2_i2c_subdev_init(sd, c, ops);
 	sd->owner = NULL;
@@ -3279,11 +3279,11 @@ static int ds5_sensor_init(struct i2c_client *c, struct ds5 *state,
 	else if (sensor->mux_pad == DS5_MUX_PAD_RGB_B || sensor->mux_pad == DS5_MUX_PAD_DEPTH_B)
 		snprintf(sd->name, sizeof(sd->name), "D4XX %s %c", name, dpdata->subdev_info[1].suffix);
 
-	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
-
-	pad->flags = MEDIA_PAD_FL_SOURCE;
+	sd->flags       |= V4L2_SUBDEV_FL_HAS_DEVNODE;
+	pad->flags       = MEDIA_PAD_FL_SOURCE;
 	entity->obj_type = MEDIA_ENTITY_TYPE_V4L2_SUBDEV;
 	entity->function = MEDIA_ENT_F_CAM_SENSOR;
+
 	return media_entity_pads_init(entity, 1, pad);
 }
 
@@ -3330,44 +3330,38 @@ static int ds5_depth_init(struct i2c_client *c, struct ds5 *state)
 {
 	/* Which mux pad we're connecting to */
 	state->depth.sensor.mux_pad = DS5_MUX_PAD_DEPTH_A;
-	return ds5_sensor_init(c, state, &state->depth.sensor,
-		       &ds5_depth_subdev_ops, "depth");
+	return ds5_sensor_init(c, state, &state->depth.sensor, &ds5_depth_subdev_ops, "depth");
 }
 
 static int ds5_depth_b_init(struct i2c_client *c, struct ds5 *state)
 {
 	/* Which mux pad we're connecting to */
 	state->depth_b.sensor.mux_pad = DS5_MUX_PAD_DEPTH_B;
-	return ds5_sensor_init(c, state, &state->depth_b.sensor,
-		       &ds5_depth_subdev_ops, "depth");
+	return ds5_sensor_init(c, state, &state->depth_b.sensor, &ds5_depth_subdev_ops, "depth");
 }
 
 static int ds5_motion_t_init(struct i2c_client *c, struct ds5 *state)
 {
 	state->motion_t.sensor.mux_pad = DS5_MUX_PAD_MOTION_T_A;
-	return ds5_sensor_init(c, state, &state->motion_t.sensor,
-		       &ds5_motion_t_subdev_ops, "motion detection");
+	return ds5_sensor_init(c, state, &state->motion_t.sensor, &ds5_motion_t_subdev_ops, "motion detection");
 }
 
 static int ds5_rgb_init(struct i2c_client *c, struct ds5 *state)
 {
 	state->rgb.sensor.mux_pad = DS5_MUX_PAD_RGB_A;
-	return ds5_sensor_init(c, state, &state->rgb.sensor,
-		       &ds5_rgb_subdev_ops, "rgb");
+	return ds5_sensor_init(c, state, &state->rgb.sensor, &ds5_rgb_subdev_ops, "rgb");
 }
 
 static int ds5_rgb_b_init(struct i2c_client *c, struct ds5 *state)
 {
 	state->rgb_b.sensor.mux_pad = DS5_MUX_PAD_RGB_B;
-	return ds5_sensor_init(c, state, &state->rgb_b.sensor,
-		       &ds5_rgb_subdev_ops, "rgb");
+	return ds5_sensor_init(c, state, &state->rgb_b.sensor, &ds5_rgb_subdev_ops, "rgb");
 }
 
 static int ds5_imu_init(struct i2c_client *c, struct ds5 *state)
 {
 	state->imu.sensor.mux_pad = DS5_MUX_PAD_IMU_A;
-	return ds5_sensor_init(c, state, &state->imu.sensor,
-		       &ds5_imu_subdev_ops, "imu");
+	return ds5_sensor_init(c, state, &state->imu.sensor, &ds5_imu_subdev_ops, "imu");
 }
 
 /* No locking needed */
