@@ -16,7 +16,7 @@
 #include <media/v4l2-async.h>
 
 #define I2C_BUS_AVAILABLE               1
-#define DEVICE_NAME_MAX9296             "max9296" 
+#define DEVICE_NAME_MAX9296             "i2c" 
 #define DEVICE_ADDR_MAX9296             0x48
 #define DEVICE_NAME_MAX9295             "max9295" 
 #define DEVICE_ADDR_MAX9295             0x62
@@ -230,7 +230,7 @@ static int max9296_probe(struct i2c_client *client)
 {
     int ret = 0;
     struct max9296 *sensor;
-    dev_t  *dev_num = &client->dev.devt;
+    // dev_t  *dev_num = &client->dev.devt;
 
     // _client = client;
     pr_info("max9296_probe() OK!\n");    
@@ -255,13 +255,14 @@ static int max9296_probe(struct i2c_client *client)
     // Initial subdev
     v4l2_i2c_subdev_init(&sensor->sd, sensor->client, &max9296_subdev_ops);
 
-    sensor->sd.owner           = NULL;
+    // sensor->sd.owner           = NULL;
 	sensor->sd.internal_ops    = &max9296_internal_ops;
-    sensor->sd.grp_id          = *dev_num;
+    // sensor->sd.grp_id          = *dev_num;
 	sensor->sd.flags          |= V4L2_SUBDEV_FL_HAS_DEVNODE;
     sensor->sd.entity.ops      = &max9296_subdev_entity_ops;
-    sensor->sd.entity.obj_type = MEDIA_ENTITY_TYPE_V4L2_SUBDEV;
+    // sensor->sd.entity.obj_type = MEDIA_ENTITY_TYPE_V4L2_SUBDEV;
 	sensor->sd.entity.function = MEDIA_ENT_F_CAM_SENSOR;
+
 	sensor->pad.flags          = MEDIA_PAD_FL_SOURCE;
 
     ret = media_entity_pads_init(&sensor->sd.entity, 1, &sensor->pad); 
@@ -272,10 +273,11 @@ static int max9296_probe(struct i2c_client *client)
 
     max9296_init_controls(sensor);
 
-    // V4L2 Media Device Initial 
+    // V4L2 Media Device & V4L2 Subdevice Initial 
+/*    
     sensor->media_dev.dev  = &client->dev;
     sensor->media_dev.ops  = NULL; 
-    strscpy(sensor->media_dev.model, "max9296", 4);  
+    strscpy(sensor->media_dev.model, "maxim", 6);  
     
     media_device_init(&sensor->media_dev);
 	ret = media_device_register(&sensor->media_dev);    
@@ -285,7 +287,6 @@ static int max9296_probe(struct i2c_client *client)
     }
     sensor->v4l2_dev.mdev = &sensor->media_dev;
 
-    // V4L2 Device initial 
     ret = v4l2_device_register(&sensor->client->dev, &sensor->v4l2_dev);
     if (ret < 0) {
         pr_err("v4l2_device_register()) fail! (%d)", ret);        
@@ -306,31 +307,14 @@ static int max9296_probe(struct i2c_client *client)
         pr_err("v4l2_device_register_subdev_nodes() fail! (%d)", ret);
 		return -1;
     }
-
-/*
-	ret = media_entity_pads_init(&sensor->sd.entity, 1, &sensor->pad);
-	if (ret != 0) {
-		pr_err("%s failed:%d\n", __func__, ret);
-		return -1;
-	}
 */
 
-/*
-	ret = media_create_pad_link(&sensor->sd.entity, 0, &sensor->sd.entity, 1, MEDIA_LNK_FL_IMMUTABLE | MEDIA_LNK_FL_ENABLED);    
-	if (ret < 0) {
-        pr_err("media_create_pad_link()) fail! (%d)", ret);
-		return -1;
-    }
-*/
-
-/*
     ret = v4l2_async_register_subdev_sensor(&sensor->sd);
     if (ret != 0) {
         pr_err("v4l2_async_register_subdev_sensor() fail! (%d)", ret); 
         return ret;
     }
     pr_info("v4l2_async_register_subdev_sensor() OK! \n");
-*/
 
 	return 0; 
 }
@@ -338,11 +322,16 @@ static int max9296_probe(struct i2c_client *client)
 static void max9296_remove(struct i2c_client *client)
 {
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
+    // struct max9296 *sensor = v4l2_get_subdevdata(sd);
 
-    // v4l2_async_unregister_subdev(sd);
-	v4l2_device_unregister_subdev(sd);
+    v4l2_async_unregister_subdev(sd);
+	// v4l2_device_unregister_subdev(sd);
 	media_entity_cleanup(&sd->entity);
-
+    /*
+    media_devnode_unregister(sensor->media_dev.devnode);
+    media_device_unregister(&sensor->media_dev);    
+    media_device_cleanup(&sensor->media_dev);    
+    */
     pr_info("max9296_remove() OK!\n");    
 }
 
