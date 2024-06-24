@@ -462,11 +462,9 @@ ipu_isys_buffer_to_fw_frame_buff(struct ipu_fw_isys_frame_buff_set_abi *set,
 }
 
 /* Start streaming for real. The buffer list must be available. */
-static int ipu_isys_stream_start(struct ipu_isys_pipeline *ip,
-				 struct ipu_isys_buffer_list *bl, bool error)
+static int ipu_isys_stream_start(struct ipu_isys_pipeline *ip, struct ipu_isys_buffer_list *bl, bool error)
 {
-	struct ipu_isys_video *pipe_av =
-	    container_of(ip, struct ipu_isys_video, ip);
+	struct ipu_isys_video *pipe_av = container_of(ip, struct ipu_isys_video, ip);
 	struct ipu_isys_buffer_list __bl;
 	int rval;
 
@@ -487,8 +485,7 @@ static int ipu_isys_stream_start(struct ipu_isys_pipeline *ip,
 	do {
 		struct ipu_fw_isys_frame_buff_set_abi *buf = NULL;
 		struct isys_fw_msgs *msg;
-		enum ipu_fw_isys_send_type send_type =
-		    IPU_FW_ISYS_SEND_TYPE_STREAM_CAPTURE;
+		enum ipu_fw_isys_send_type send_type = IPU_FW_ISYS_SEND_TYPE_STREAM_CAPTURE;
 
 		rval = buffer_list_get(ip, bl);
 		if (rval == -EINVAL)
@@ -501,33 +498,18 @@ static int ipu_isys_stream_start(struct ipu_isys_pipeline *ip,
 			return -ENOMEM;
 
 		buf = to_frame_msg_buf(msg);
-
 		ipu_isys_buffer_to_fw_frame_buff(buf, ip, bl);
-
-		ipu_fw_isys_dump_frame_buff_set(&pipe_av->isys->adev->dev, buf,
-						ip->nr_output_pins);
-
-		ipu_isys_buffer_list_queue(bl,
-					   IPU_ISYS_BUFFER_LIST_FL_ACTIVE, 0);
-
-		rval = ipu_fw_isys_complex_cmd(pipe_av->isys,
-					       ip->stream_handle,
-					       buf, to_dma_addr(msg),
-					       sizeof(*buf),
-					       send_type);
+		ipu_fw_isys_dump_frame_buff_set(&pipe_av->isys->adev->dev, buf,	ip->nr_output_pins);
+		ipu_isys_buffer_list_queue(bl, IPU_ISYS_BUFFER_LIST_FL_ACTIVE, 0);
+		rval = ipu_fw_isys_complex_cmd(pipe_av->isys, ip->stream_handle, buf, to_dma_addr(msg), sizeof(*buf), send_type);
 	} while (!WARN_ON(rval));
 
 	return 0;
 
 out_requeue:
 	if (bl && bl->nbufs)
-		ipu_isys_buffer_list_queue(bl,
-					   IPU_ISYS_BUFFER_LIST_FL_INCOMING |
-					   (error ?
-					    IPU_ISYS_BUFFER_LIST_FL_SET_STATE :
-					    0),
-					   error ? VB2_BUF_STATE_ERROR :
-					   VB2_BUF_STATE_QUEUED);
+		ipu_isys_buffer_list_queue(bl, IPU_ISYS_BUFFER_LIST_FL_INCOMING | (error ? IPU_ISYS_BUFFER_LIST_FL_SET_STATE : 0),
+					   error ? VB2_BUF_STATE_ERROR : VB2_BUF_STATE_QUEUED);
 	flush_firmware_streamon_fail(ip);
 
 	return rval;
@@ -826,13 +808,10 @@ static int __start_streaming(struct vb2_queue *q, unsigned int count)
 	}
 
 	ip->nr_streaming++;
-	dev_dbg(&av->isys->adev->dev, "queue %u of %u\n", ip->nr_streaming,
-		ip->nr_queues);
+	dev_dbg(&av->isys->adev->dev, "queue %u of %u\n", ip->nr_streaming,	ip->nr_queues);
 	list_add(&aq->node, &ip->queues);
 	if (ip->nr_streaming != ip->nr_queues) {
-		dev_dbg(&av->isys->adev->dev,
-			"%s: streaming queue not match (%d)(%d)\n",
-			av->vdev.name, ip->nr_streaming, ip->nr_queues);
+		dev_dbg(&av->isys->adev->dev, "%s: streaming queue not match (%d)(%d)\n", av->vdev.name, ip->nr_streaming, ip->nr_queues);
 		goto out;
 	}
 
@@ -840,12 +819,10 @@ static int __start_streaming(struct vb2_queue *q, unsigned int count)
 		bl = &__bl;
 		rval = buffer_list_get(ip, bl);
 		if (rval == -EINVAL) {
-			dev_err(&av->isys->adev->dev,
-				"buffer list invalid\n");
+			dev_err(&av->isys->adev->dev, "buffer list invalid\n");
 			goto out_stream_start;
 		} else if (rval < 0) {
-			dev_dbg(&av->isys->adev->dev,
-				"no request available, postponing streamon\n");
+			dev_dbg(&av->isys->adev->dev, "no request available, postponing streamon\n");
 			goto out;
 		}
 	}
@@ -962,8 +939,7 @@ static int reset_start_streaming(struct ipu_isys_video *av)
 	av->skipframe = 1;
 	rval = __start_streaming(&aq->vbq, 0);
 	if (rval) {
-		dev_dbg(&av->isys->adev->dev,
-			"%s: start streaming failed in reset ! set av->start_streaming = 0.\n",
+		dev_dbg(&av->isys->adev->dev, "%s: start streaming failed in reset ! set av->start_streaming = 0.\n",
 			av->vdev.name);
 		av->start_streaming = 0;
 	} else
@@ -1495,9 +1471,9 @@ int ipu_isys_queue_init(struct ipu_isys_queue *aq)
 
 	if (!aq->vbq.io_modes)
 		aq->vbq.io_modes = VB2_USERPTR | VB2_MMAP | VB2_DMABUF;
-	aq->vbq.drv_priv = aq;
-	aq->vbq.ops = &ipu_isys_queue_ops;
-	aq->vbq.mem_ops = &vb2_dma_contig_memops;
+	aq->vbq.drv_priv        = aq;
+	aq->vbq.ops             = &ipu_isys_queue_ops;
+	aq->vbq.mem_ops         = &vb2_dma_contig_memops;
 	aq->vbq.timestamp_flags = (wall_clock_ts_on) ?
 	    V4L2_BUF_FLAG_TIMESTAMP_UNKNOWN : V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
 
