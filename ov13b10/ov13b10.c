@@ -1313,70 +1313,49 @@ static int ov13b10_init_controls(struct ov13b10 *ov13b)
 	mutex_init(&ov13b->mutex);
 	ctrl_hdlr->lock = &ov13b->mutex;
 	max = ARRAY_SIZE(link_freq_menu_items) - 1;
-	ov13b->link_freq = v4l2_ctrl_new_int_menu(ctrl_hdlr,
-						  &ov13b10_ctrl_ops,
-						  V4L2_CID_LINK_FREQ,
-						  max,
-						  0,
-						  link_freq_menu_items);
+	ov13b->link_freq = v4l2_ctrl_new_int_menu(ctrl_hdlr, &ov13b10_ctrl_ops, V4L2_CID_LINK_FREQ, max, 0, link_freq_menu_items);
 	if (ov13b->link_freq)
 		ov13b->link_freq->flags |= V4L2_CTRL_FLAG_READ_ONLY;
 
 	pixel_rate_max = link_freq_to_pixel_rate(link_freq_menu_items[0]);
 	pixel_rate_min = 0;
 	/* By default, PIXEL_RATE is read only */
-	ov13b->pixel_rate = v4l2_ctrl_new_std(ctrl_hdlr, &ov13b10_ctrl_ops,
-					      V4L2_CID_PIXEL_RATE,
-					      pixel_rate_min, pixel_rate_max,
-					      1, pixel_rate_max);
+	ov13b->pixel_rate = v4l2_ctrl_new_std(ctrl_hdlr, &ov13b10_ctrl_ops, V4L2_CID_PIXEL_RATE, pixel_rate_min, 
+                                          pixel_rate_max, 1, pixel_rate_max);
 
 	mode = ov13b->cur_mode;
 	vblank_def = mode->vts_def - mode->height;
 	vblank_min = mode->vts_min - mode->height;
-	ov13b->vblank = v4l2_ctrl_new_std(ctrl_hdlr, &ov13b10_ctrl_ops,
-					  V4L2_CID_VBLANK,
-					  vblank_min,
-					  OV13B10_VTS_MAX - mode->height, 1,
-					  vblank_def);
+	ov13b->vblank = v4l2_ctrl_new_std(ctrl_hdlr, &ov13b10_ctrl_ops, V4L2_CID_VBLANK, vblank_min,  
+                                      OV13B10_VTS_MAX - mode->height, 1, vblank_def);
 
-	hblank = link_freq_configs[mode->link_freq_index].pixels_per_line -
-		 mode->width;
-	ov13b->hblank = v4l2_ctrl_new_std(ctrl_hdlr, &ov13b10_ctrl_ops,
-					  V4L2_CID_HBLANK,
-					  hblank, hblank, 1, hblank);
+	hblank = link_freq_configs[mode->link_freq_index].pixels_per_line - mode->width;
+	ov13b->hblank = v4l2_ctrl_new_std(ctrl_hdlr, &ov13b10_ctrl_ops, V4L2_CID_HBLANK, hblank, hblank, 1, hblank);
 	if (ov13b->hblank)
 		ov13b->hblank->flags |= V4L2_CTRL_FLAG_READ_ONLY;
 
 	exposure_max = mode->vts_def - 8;
-	ov13b->exposure = v4l2_ctrl_new_std(ctrl_hdlr, &ov13b10_ctrl_ops,
-					    V4L2_CID_EXPOSURE,
-					    OV13B10_EXPOSURE_MIN,
-					    exposure_max, OV13B10_EXPOSURE_STEP,
-					    OV13B10_EXPOSURE_DEFAULT);
+	ov13b->exposure = v4l2_ctrl_new_std(ctrl_hdlr, &ov13b10_ctrl_ops, V4L2_CID_EXPOSURE, OV13B10_EXPOSURE_MIN,
+                                        exposure_max, OV13B10_EXPOSURE_STEP, OV13B10_EXPOSURE_DEFAULT);
 
 	v4l2_ctrl_new_std(ctrl_hdlr, &ov13b10_ctrl_ops, V4L2_CID_ANALOGUE_GAIN,
-			  OV13B10_ANA_GAIN_MIN, OV13B10_ANA_GAIN_MAX,
-			  OV13B10_ANA_GAIN_STEP, OV13B10_ANA_GAIN_DEFAULT);
+			          OV13B10_ANA_GAIN_MIN, OV13B10_ANA_GAIN_MAX,
+			          OV13B10_ANA_GAIN_STEP, OV13B10_ANA_GAIN_DEFAULT);
 
 	/* Digital gain */
 	v4l2_ctrl_new_std(ctrl_hdlr, &ov13b10_ctrl_ops, V4L2_CID_DIGITAL_GAIN,
-			  OV13B10_DGTL_GAIN_MIN, OV13B10_DGTL_GAIN_MAX,
-			  OV13B10_DGTL_GAIN_STEP, OV13B10_DGTL_GAIN_DEFAULT);
+			          OV13B10_DGTL_GAIN_MIN, OV13B10_DGTL_GAIN_MAX,
+			          OV13B10_DGTL_GAIN_STEP, OV13B10_DGTL_GAIN_DEFAULT);
 
-	v4l2_ctrl_new_std_menu_items(ctrl_hdlr, &ov13b10_ctrl_ops,
-				     V4L2_CID_TEST_PATTERN,
-				     ARRAY_SIZE(ov13b10_test_pattern_menu) - 1,
-				     0, 0, ov13b10_test_pattern_menu);
+	v4l2_ctrl_new_std_menu_items(ctrl_hdlr, &ov13b10_ctrl_ops, V4L2_CID_TEST_PATTERN,
+				     ARRAY_SIZE(ov13b10_test_pattern_menu) - 1, 0, 0, ov13b10_test_pattern_menu);
 
-	v4l2_ctrl_new_std(ctrl_hdlr, &ov13b10_ctrl_ops,
-			  V4L2_CID_HFLIP, 0, 1, 1, 0);
-	v4l2_ctrl_new_std(ctrl_hdlr, &ov13b10_ctrl_ops,
-			  V4L2_CID_VFLIP, 0, 1, 1, 0);
+	v4l2_ctrl_new_std(ctrl_hdlr, &ov13b10_ctrl_ops, V4L2_CID_HFLIP, 0, 1, 1, 0);
+	v4l2_ctrl_new_std(ctrl_hdlr, &ov13b10_ctrl_ops, V4L2_CID_VFLIP, 0, 1, 1, 0);
 
 	if (ctrl_hdlr->error) {
 		ret = ctrl_hdlr->error;
-		dev_err(&client->dev, "%s control init failed (%d)\n",
-			__func__, ret);
+		dev_err(&client->dev, "%s control init failed (%d)\n", __func__, ret);
 		goto error;
 	}
 
@@ -1384,8 +1363,7 @@ static int ov13b10_init_controls(struct ov13b10 *ov13b)
 	if (ret)
 		goto error;
 
-	ret = v4l2_ctrl_new_fwnode_properties(ctrl_hdlr, &ov13b10_ctrl_ops,
-					      &props);
+	ret = v4l2_ctrl_new_fwnode_properties(ctrl_hdlr, &ov13b10_ctrl_ops, &props);
 	if (ret)
 		goto error;
 

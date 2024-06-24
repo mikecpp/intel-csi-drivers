@@ -6,6 +6,8 @@
 #include <linux/kernel.h>
 #include <linux/pci.h>
 
+#define CONFIG_VIDEO_AR0234     1
+
 #include <media/ipu-isys.h>
 #if IS_ENABLED(CONFIG_VIDEO_TI960)
 #include <media/ti960.h>

@@ -801,10 +801,8 @@ static int __start_streaming(struct vb2_queue *q, unsigned int count)
 	bool first;
 	int rval;
 
-	dev_dbg(&av->isys->adev->dev,
-		"stream: %s: width %u, height %u, css pixelformat %u\n",
-		av->vdev.name, av->mpix.width, av->mpix.height,
-		av->pfmt->css_pixelformat);
+	dev_info(&av->isys->adev->dev, "stream: %s: width %u, height %u, css pixelformat %u\n",
+		av->vdev.name, av->mpix.width, av->mpix.height,	av->pfmt->css_pixelformat);
 
 	mutex_lock(&av->isys->stream_mutex);
 
@@ -813,9 +811,7 @@ static int __start_streaming(struct vb2_queue *q, unsigned int count)
 	if (first) {
 		rval = ipu_isys_video_prepare_streaming(av, 1);
 		if (rval) {
-			dev_err(&av->isys->adev->dev,
-				"%s: prepare stream: failed (%d)\n",
-				av->vdev.name, rval);
+			dev_err(&av->isys->adev->dev, "%s: prepare stream: failed (%d)\n", av->vdev.name, rval);
 			goto out_return_buffers;
 		}
 	}

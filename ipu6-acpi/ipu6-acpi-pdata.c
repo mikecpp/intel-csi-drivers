@@ -376,6 +376,8 @@ void update_pdata(struct device *dev, struct ipu_isys_subdev_info *new_subdev, e
 	struct ipu_isys_subdev_info *acpi_subdev;
 	bool found = false;
 
+    pr_info("--> update_pdata()\n");
+
 	acpi_subdev = new_subdev;
 
 	/* update local ipu_isys_subdev_pdata */
@@ -384,6 +386,8 @@ void update_pdata(struct device *dev, struct ipu_isys_subdev_info *new_subdev, e
 	/* found existing pdata */
 	if (ptr_built_in_pdata) {
 		struct ipu_isys_subdev_info **subdevs, *sd_info;
+
+        pr_info("--> ptr_build_in_pdata\n");        
 
 		for (subdevs = ptr_built_in_pdata->subdevs; *subdevs; subdevs++) {
 			sd_info = *subdevs;
@@ -444,10 +448,10 @@ void update_pdata(struct device *dev, struct ipu_isys_subdev_info *new_subdev, e
 	else {
 		/* print new subdev */
 		if (connect == TYPE_DIRECT) {
-			pr_debug("New sensor subdev\n");
+			pr_info("New sensor subdev\n");
 			print_subdev(acpi_subdev);
 		} else {
-			pr_debug("New serdes subdev\n");
+			pr_info("New serdes subdev\n");
 			print_serdes_subdev(acpi_subdev);
 		}
 	}
@@ -657,16 +661,9 @@ int set_serdes_subdev(struct ipu_isys_subdev_info **serdes_sd,
 	return 0;
 }
 
-int set_pdata(struct ipu_isys_subdev_info **sensor_sd,
-		struct device *dev,
-		char sensor_name[I2C_NAME_SIZE],
-		struct control_logic_data *ctl_data,
-		unsigned int port,
-		unsigned int lanes,
-		unsigned int addr,
-		unsigned int rx_port,
-		bool is_dummy,
-		enum connection_type connect)
+int set_pdata(struct ipu_isys_subdev_info **sensor_sd, struct device *dev, char sensor_name[I2C_NAME_SIZE],
+		      struct control_logic_data *ctl_data, unsigned int port, unsigned int lanes, unsigned int addr, 
+              unsigned int rx_port, bool is_dummy, enum connection_type connect)
 {
 	if (connect == TYPE_DIRECT) {
 		struct sensor_platform_data *pdata;
@@ -675,28 +672,27 @@ int set_pdata(struct ipu_isys_subdev_info **sensor_sd,
 		if (!pdata)
 			return -ENOMEM;
 
-		pr_debug("IPU6 ACPI: %s - Direct connection", __func__);
-		/* use ascii */
-		/* port for start from 0 */
+		pr_info("IPU6 ACPI: %s - Direct connection", __func__);
+
 		if (port >= 0) {
 			pdata->suffix = port + SUFFIX_BASE + 1;
-			pr_info("IPU6 ACPI: create %s %c, on port %d",
-				sensor_name, pdata->suffix, port);
-		} else
+			pr_info("IPU6 ACPI: create %s %c, on port %d", sensor_name, pdata->suffix, port);
+		} 
+        else
 			dev_err(dev, "INVALID MIPI PORT");
 
-		pdata->port = port;
-		pdata->lanes = lanes;
+		pdata->port              = port;
+		pdata->lanes             = lanes;
 		pdata->i2c_slave_address = addr;
 
-		/* gpio */
 		if (!strcmp(sensor_name, LT6911UXC_NAME) || !strcmp(sensor_name, LT6911UXE_NAME))
 			set_lt_gpio(ctl_data, &pdata, is_dummy);
 		else
 			set_common_gpio(ctl_data, &pdata);
 
 		(*sensor_sd)->i2c.board_info.platform_data = pdata;
-	} else if (connect == TYPE_SERDES) {
+	} 
+    else if (connect == TYPE_SERDES) {
 		struct serdes_platform_data *pdata;
 
 		pdata = kzalloc(sizeof(*pdata), GFP_KERNEL);
@@ -705,16 +701,15 @@ int set_pdata(struct ipu_isys_subdev_info **sensor_sd,
 
 		pr_debug("IPU6 ACPI: %s - Serdes connection", __func__);
 
-		/* use ascii */
 		if (!strcmp(sensor_name, D457_NAME) && port >= 0) {
 			pdata->suffix = serdes_info.deser_num + SUFFIX_BASE + 1;
-			pr_info("IPU6 ACPI: create %s %c, on deserializer port %d",
-				sensor_name, pdata->suffix, serdes_info.deser_num);
-		} else if (port > 0) {
+			pr_info("IPU6 ACPI: create %s %c, on deserializer port %d",	sensor_name, pdata->suffix, serdes_info.deser_num);
+		} 
+        else if (port > 0) {
 			pdata->suffix = port + SUFFIX_BASE;
-			pr_info("IPU6 ACPI: create %s %c, on mipi port %d",
-				sensor_name, pdata->suffix, port);
-		} else
+			pr_info("IPU6 ACPI: create %s %c, on mipi port %d",	sensor_name, pdata->suffix, port);
+		} 
+        else
 			pr_err("IPU6 ACPI: Invalid MIPI Port : %d", port);
 
 		if (!strcmp(sensor_name, IMX390_NAME))
@@ -770,7 +765,7 @@ int populate_dummy(struct device *dev, char sensor_name[I2C_NAME_SIZE],	struct s
 	unsigned short addr_dummy = 0x11;
 	int ret;
 
-	pr_debug("IPU6 ACPI: %s", __func__);
+	pr_info("IPU6 ACPI: %s", __func__);
 
 	dummy = kzalloc(sizeof(*dummy), GFP_KERNEL);
 	if (!dummy)
@@ -796,15 +791,13 @@ int populate_dummy(struct device *dev, char sensor_name[I2C_NAME_SIZE],	struct s
 	return 0;
 }
 
-int populate_sensor_pdata(struct device *dev,
-			struct ipu_isys_subdev_info **sensor_sd,
-			char sensor_name[I2C_NAME_SIZE],
-			struct sensor_bios_data *cam_data,
-			struct control_logic_data *ctl_data,
-			enum connection_type connect,
-			const char *serdes_name)
+int populate_sensor_pdata(struct device *dev, struct ipu_isys_subdev_info **sensor_sd,
+			char sensor_name[I2C_NAME_SIZE], struct sensor_bios_data *cam_data,
+			struct control_logic_data *ctl_data, enum connection_type connect, const char *serdes_name)
 {
 	int ret;
+
+    pr_info("--> populate_sensor_pdata()\n");
 
 	if (connect == TYPE_DIRECT) {
 		/* sensor csi2 info */
@@ -814,31 +807,30 @@ int populate_sensor_pdata(struct device *dev,
 
 		/* sensor i2c info */
 		if (cam_data->i2c_num == MIN_SENSOR_I2C) {
-			pr_debug("IPU6 ACPI: num of I2C device for Direct connection: %lld is Correct.",
-				cam_data->i2c_num);
+			pr_debug("IPU6 ACPI: num of I2C device for Direct connection: %lld is Correct.", cam_data->i2c_num);
 			set_i2c(sensor_sd, dev, sensor_name, cam_data->i2c[0].addr);
-		} else {
-			pr_err("IPU6 ACPI: num of I2C device for Direct connection : %lld is Incorrect",
-				cam_data->i2c_num);
+		} 
+        else {
+			pr_err("IPU6 ACPI: num of I2C device for Direct connection : %lld is Incorrect", cam_data->i2c_num);
 			return -1;
 		}
-		/* LT use LT Control Logic type */
-		if (!strcmp(sensor_name, LT6911UXC_NAME) ||
-		    !strcmp(sensor_name, LT6911UXE_NAME)) {
+		
+        /* LT use LT Control Logic type */
+		if (!strcmp(sensor_name, LT6911UXC_NAME) || !strcmp(sensor_name, LT6911UXE_NAME)) {
 			if (ctl_data->type != CL_LT) {
 				dev_err(dev, "IPU6 ACPI: Control Logic Type\n");
-				dev_err(dev, "for %s: %d is Incorrect\n",
-					sensor_name, ctl_data->type);
+				dev_err(dev, "for %s: %d is Incorrect\n", sensor_name, ctl_data->type);
 				return -EINVAL;
 			}
 		/* Others use DISCRETE Control Logic */
-		} else if (ctl_data->type != CL_DISCRETE) {
+		} 
+        else if (ctl_data->type != CL_DISCRETE) {
 			dev_err(dev, "IPU6 ACPI: Control Logic Type\n");
-			dev_err(dev, "for %s: %d is Incorrect\n",
-				sensor_name, ctl_data->type);
+			dev_err(dev, "for %s: %d is Incorrect\n", sensor_name, ctl_data->type);
 			return -EINVAL;
 		}
-	} else if (connect == TYPE_SERDES) {
+	} 
+    else if (connect == TYPE_SERDES) {
 		/* serdes csi2 info. pprval as deserializer lane */
 		ret = set_csi2(sensor_sd, cam_data->pprval, cam_data->link);
 		if (ret)
@@ -867,9 +859,8 @@ int populate_sensor_pdata(struct device *dev,
 	}
 
 	/* Use last I2C device */
-	ret = set_pdata(sensor_sd, dev, sensor_name, ctl_data, cam_data->link,
-		cam_data->lanes, cam_data->i2c[cam_data->i2c_num - 1].addr,
-		cam_data->pprunit, false, connect);
+	ret = set_pdata(sensor_sd, dev, sensor_name, ctl_data, cam_data->link, cam_data->lanes, 
+                    cam_data->i2c[cam_data->i2c_num - 1].addr,	cam_data->pprunit, false, connect);
 
 	if (ret)
 		return ret;
@@ -885,17 +876,21 @@ int populate_sensor_pdata(struct device *dev,
 		}
 	}
 
+    pr_info("--> populate_sensor_pdata() return OK!\n");
+
 	return 0;
 }
 
 int get_sensor_pdata(struct i2c_client *client, struct ipu_camera_module_data *data,
-			struct ipu_i2c_helper *helper, void *priv, size_t size,
-			enum connection_type connect, const char *serdes_name)
+			        struct ipu_i2c_helper *helper, void *priv, size_t size,
+			        enum connection_type connect, const char *serdes_name)
 {
-	struct sensor_bios_data *cam_data;
-	struct control_logic_data *ctl_data;
+	struct sensor_bios_data     *cam_data;
+	struct control_logic_data   *ctl_data;
 	struct ipu_isys_subdev_info *sensor_sd;
 	int rval;
+
+    pr_info("--> get_sensor_pdata()\n");
 
 	cam_data = kzalloc(sizeof(*cam_data), GFP_KERNEL);
 	if (!cam_data)
@@ -937,8 +932,7 @@ int get_sensor_pdata(struct i2c_client *client, struct ipu_camera_module_data *d
 	}
 
 	/* populate pdata */
-	rval = populate_sensor_pdata(&client->dev, &sensor_sd,
-				client->name, cam_data, ctl_data, connect, serdes_name);
+	rval = populate_sensor_pdata(&client->dev, &sensor_sd, client->name, cam_data, ctl_data, connect, serdes_name);
 	if (rval) {
 		kfree(sensor_sd);
 		kfree(cam_data);
@@ -950,6 +944,10 @@ int get_sensor_pdata(struct i2c_client *client, struct ipu_camera_module_data *d
 
 	kfree(cam_data);
 	kfree(ctl_data);
+
+    pr_info("--> get_sensor_pdata() return OK!\n");
+    pr_info("client->name = %s, addr = 0x%x\n", client->name, client->addr);
+
 	return rval;
 }
 EXPORT_SYMBOL(get_sensor_pdata);

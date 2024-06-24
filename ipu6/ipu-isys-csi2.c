@@ -84,11 +84,8 @@ static struct v4l2_subdev_internal_ops csi2_sd_internal_ops = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 255)
 int ipu_isys_csi2_get_link_freq(struct ipu_isys_csi2 *csi2, s64 *link_freq)
 {
-	struct ipu_isys_pipeline *pipe =
-		container_of(media_entity_pipeline(&csi2->asd.sd.entity),
-			     struct ipu_isys_pipeline, pipe);
-	struct v4l2_subdev *ext_sd =
-		media_entity_to_v4l2_subdev(pipe->external->entity);
+	struct ipu_isys_pipeline *pipe = container_of(media_entity_pipeline(&csi2->asd.sd.entity), struct ipu_isys_pipeline, pipe);
+	struct v4l2_subdev *ext_sd = media_entity_to_v4l2_subdev(pipe->external->entity);
 	struct device *dev = &csi2->isys->adev->dev;
 	unsigned int bpp, lanes;
 	s64 ret;
@@ -115,11 +112,9 @@ int ipu_isys_csi2_get_link_freq(struct ipu_isys_csi2 *csi2, s64 *link_freq)
 #else
 int ipu_isys_csi2_get_link_freq(struct ipu_isys_csi2 *csi2, __s64 *link_freq)
 {
-	struct ipu_isys_pipeline *pipe =
-		container_of(media_entity_pipeline(&csi2->asd.sd.entity),
+	struct ipu_isys_pipeline *pipe = container_of(media_entity_pipeline(&csi2->asd.sd.entity),
 			     struct ipu_isys_pipeline, pipe);
-	struct v4l2_subdev *ext_sd =
-	    media_entity_to_v4l2_subdev(pipe->external->entity);
+	struct v4l2_subdev *ext_sd = media_entity_to_v4l2_subdev(pipe->external->entity);
 	struct v4l2_ext_control c = {.id = V4L2_CID_LINK_FREQ, };
 	struct v4l2_ext_controls cs = {.count = 1,
 		.controls = &c,

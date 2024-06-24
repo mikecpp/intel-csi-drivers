@@ -58,9 +58,7 @@ module_param(psys_freq_override, int, 0660);
 MODULE_PARM_DESC(psys_freq_override, "override psys freq default value");
 
 #if IS_ENABLED(CONFIG_INTEL_IPU6_ACPI)
-static int isys_init_acpi_add_device(struct device *dev, void *priv,
-				struct ipu_isys_csi2_config *csi2,
-				bool reprobe)
+static int isys_init_acpi_add_device(struct device *dev, void *priv, struct ipu_isys_csi2_config *csi2, bool reprobe)
 {
 	return 0;
 }
@@ -91,8 +89,7 @@ static struct ipu_bus_device *ipu_isys_init(struct pci_dev *pdev,
 					    const struct ipu_isys_internal_pdata
 					    *ipdata,
 #if IS_ENABLED(CONFIG_VIDEO_INTEL_IPU_USE_PLATFORMDATA)
-					    struct ipu_isys_subdev_pdata
-					    *spdata,
+					    struct ipu_isys_subdev_pdata *spdata,
 #endif
 					    unsigned int nr)
 {
@@ -138,8 +135,7 @@ static struct ipu_bus_device *ipu_isys_init(struct pci_dev *pdev,
 
 	isys = ipu_bus_initialize_device(pdev, parent, pdata, ctrl, IPU_ISYS_NAME, nr);
 	if (IS_ERR(isys)) {
-		dev_err_probe(&pdev->dev, PTR_ERR(isys),
-			      "ipu_bus_initialize_device(isys) failed\n");
+		dev_err_probe(&pdev->dev, PTR_ERR(isys), "ipu_bus_initialize_device(isys) failed\n");
 		kfree(pdata);
 		return isys;
 	}
@@ -696,9 +692,7 @@ static int ipu_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 	/* Init butress control with default values based on the HW */
 	memcpy(isys_ctrl, &isys_buttress_ctrl, sizeof(*isys_ctrl));
 
-	isp->isys = ipu_isys_init(pdev, &pdev->dev,
-				  isys_ctrl, isys_base,
-				  &isys_ipdata,
+	isp->isys = ipu_isys_init(pdev, &pdev->dev, isys_ctrl, isys_base, &isys_ipdata,
 #if IS_ENABLED(CONFIG_VIDEO_INTEL_IPU_USE_PLATFORMDATA)
 				  pdev->dev.platform_data,
 #endif

@@ -1508,8 +1508,7 @@ static u64 get_hblank(struct ar0234 *ar0234)
 
 static int ar0234_set_ctrl(struct v4l2_ctrl *ctrl)
 {
-	struct ar0234 *ar0234 = container_of(ctrl->handler,
-					     struct ar0234, ctrl_handler);
+	struct ar0234 *ar0234 = container_of(ctrl->handler, struct ar0234, ctrl_handler);
 	struct i2c_client *client = v4l2_get_subdevdata(&ar0234->sd);
 	s64 exposure_max;
 	int ret = 0;

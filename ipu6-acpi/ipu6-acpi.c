@@ -45,8 +45,7 @@
 
 static LIST_HEAD(devices);
 
-static struct ipu_camera_module_data *add_device_to_list(
-	struct list_head *devices)
+static struct ipu_camera_module_data *add_device_to_list(struct list_head *devices)
 {
 	struct ipu_camera_module_data *cam_device;
 
@@ -69,7 +68,7 @@ static const struct ipu_acpi_devices supported_devices[] = {
 	{ "INTC10C1", IMX390_NAME, get_sensor_pdata, NULL, 0, TYPE_SERDES, TI960_NAME },// IMX390 HID
 	{ "INTC10C5", LT6911UXE_NAME, get_sensor_pdata, NULL, 0, TYPE_DIRECT, NULL },   // LT6911UXE HID
 	{ "INTC10CD", D457_NAME, get_sensor_pdata, NULL, 0, TYPE_SERDES, D457_NAME },// D457 HID
-    { "MAX9296", MAX9296_NAME, get_sensor_pdata, NULL, 0, TYPE_DIRECT, MAX9296_NAME },// D457 HID}
+    { "MAX9296", MAX9296_NAME, get_sensor_pdata, NULL, 0, TYPE_DIRECT, NULL },// MAX9296 HID}
 };
 
 static int get_table_index(struct device *device, const __u8 *acpi_name)
@@ -117,12 +116,8 @@ static int ipu_acpi_get_pdata(struct i2c_client *client, const struct acpi_devic
 
 	pr_info("IPU6 ACPI: Getting BIOS data for %s (%s)", client->name, dev_name(&client->dev));
 
-	supported_devices[index].get_platform_data(
-		client, camdata, helper,
-		supported_devices[index].priv_data,
-		supported_devices[index].priv_size,
-		supported_devices[index].connect,
-		supported_devices[index].serdes_name);
+	supported_devices[index].get_platform_data(client, camdata, helper,	supported_devices[index].priv_data,
+		supported_devices[index].priv_size,	supported_devices[index].connect, supported_devices[index].serdes_name);
 
 	return 0;
 }
@@ -142,8 +137,7 @@ static int ipu_i2c_test(struct device *dev, void *priv)
 
 	acpi_id = acpi_match_device(ipu_acpi_match, dev);
 	if (!acpi_id) {
-		dev_err(dev, "IPU6 ACPI: ACPI device %s NOT supported\n",
-			dev_name(dev));
+		dev_err(dev, "IPU6 ACPI: ACPI device %s NOT supported\n", dev_name(dev));
 		return 0;
 	}
 
@@ -210,6 +204,7 @@ EXPORT_SYMBOL(ipu_get_acpi_devices);
 static int __init ipu_acpi_init(void)
 {
 	set_built_in_pdata(NULL);
+
 	return 0;
 }
 
@@ -223,4 +218,3 @@ module_exit(ipu_acpi_exit);
 MODULE_AUTHOR("Samu Onkalo <samu.onkalo@intel.com>");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("IPU6 ACPI support");
-

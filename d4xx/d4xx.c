@@ -3301,9 +3301,8 @@ static int ds5_sensor_register(struct ds5 *state, struct ds5_sensor *sensor)
 		return ret;
 	}
 
-	ret = media_create_pad_link(entity, 0,
-			&state->mux.sd.subdev.entity, sensor->mux_pad,
-			MEDIA_LNK_FL_IMMUTABLE | MEDIA_LNK_FL_ENABLED);
+	ret = media_create_pad_link(entity, 0, &state->mux.sd.subdev.entity, sensor->mux_pad, 
+                                MEDIA_LNK_FL_IMMUTABLE | MEDIA_LNK_FL_ENABLED);
 	if (ret < 0) {
 		dev_err(sd->dev, "%s(): %d: %d\n", __func__, __LINE__, ret);
 		goto e_sd;
@@ -4996,8 +4995,7 @@ static ssize_t ds5_fw_ver_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	struct i2c_client *c = to_i2c_client(dev);
-	struct ds5 *state = container_of(i2c_get_clientdata(c),
-			struct ds5, mux.sd.subdev);
+	struct ds5 *state = container_of(i2c_get_clientdata(c),	struct ds5, mux.sd.subdev);
 
 	ds5_read(state, DS5_FW_VERSION, &state->fw_version);
 	ds5_read(state, DS5_FW_BUILD, &state->fw_build);
@@ -5033,8 +5031,7 @@ static ssize_t ds5_read_reg_show(struct device *dev,
 	u16 rbuf;
 	int n;
 	struct i2c_client *c = to_i2c_client(dev);
-	struct ds5 *state = container_of(i2c_get_clientdata(c),
-			struct ds5, mux.sd.subdev);
+	struct ds5 *state = container_of(i2c_get_clientdata(c),	struct ds5, mux.sd.subdev);
 	struct dev_ds5_reg_attribute *ds5_rw_attr = container_of(attr,
 			struct dev_ds5_reg_attribute, attr);
 	if (ds5_rw_attr->valid != 1)
@@ -5081,8 +5078,7 @@ static ssize_t ds5_write_reg_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
 	struct i2c_client *c = to_i2c_client(dev);
-	struct ds5 *state = container_of(i2c_get_clientdata(c),
-			struct ds5, mux.sd.subdev);
+	struct ds5 *state = container_of(i2c_get_clientdata(c),	struct ds5, mux.sd.subdev);
 
 	int rc = -1;
 	u32 reg, w_val = 0;
@@ -5412,8 +5408,7 @@ static int ds5_remove(struct i2c_client *c)
 {
 	struct ds5 *state = container_of(i2c_get_clientdata(c), struct ds5, mux.sd.subdev);
 
-	dev_info(&c->dev, "D4XX remove %s\n",
-			ds5_get_sensor_name(state));
+	dev_info(&c->dev, "D4XX remove %s\n", ds5_get_sensor_name(state));
 	if (state->vcc)
 		regulator_disable(state->vcc);
 //	gpio_free(state->pwdn_gpio);

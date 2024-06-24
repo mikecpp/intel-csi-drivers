@@ -13,11 +13,17 @@
 #include <linux/sched.h>
 #include <linux/version.h>
 
+#include <linux/i2c.h>
+#include <linux/module.h>
+#include <media/v4l2-common.h>
+#include <media/v4l2-device.h>
+
 #include <media/ipu-isys.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 6, 0)
 #include <media/v4l2-mc.h>
 #endif
 #include <media/v4l2-subdev.h>
+
 #if !IS_ENABLED(CONFIG_VIDEO_INTEL_IPU_USE_PLATFORMDATA)
 #include <media/v4l2-fwnode.h>
 #include <media/v4l2-ctrls.h>
@@ -297,9 +303,7 @@ static int isys_i2c_test(struct device *dev, void *priv)
 	return 0;
 }
 
-static struct
-i2c_client *isys_find_i2c_subdev(struct i2c_adapter *adapter,
-				 struct ipu_isys_subdev_info *sd_info)
+static struct i2c_client *isys_find_i2c_subdev(struct i2c_adapter *adapter, struct ipu_isys_subdev_info *sd_info)
 {
 	struct i2c_board_info *info = &sd_info->i2c.board_info;
 	struct isys_i2c_test test = {
@@ -311,13 +315,11 @@ i2c_client *isys_find_i2c_subdev(struct i2c_adapter *adapter,
 	rval = i2c_for_each_dev(&test, isys_i2c_test);
 	if (rval || !test.client)
 		return NULL;
+
 	return test.client;
 }
 #endif
-static int
-isys_complete_ext_device_registration(struct ipu_isys *isys,
-				      struct v4l2_subdev *sd,
-				      struct ipu_isys_csi2_config *csi2)
+static int isys_complete_ext_device_registration(struct ipu_isys *isys, struct v4l2_subdev *sd, struct ipu_isys_csi2_config *csi2)
 {
 	unsigned int i;
 	int rval;
@@ -330,19 +332,18 @@ isys_complete_ext_device_registration(struct ipu_isys *isys,
 	}
 
 	if (i == sd->entity.num_pads) {
-		dev_warn(&isys->adev->dev,
-			 "no source pad in external entity\n");
+		dev_warn(&isys->adev->dev, "no source pad in external entity\n");
 		rval = -ENOENT;
 		goto skip_unregister_subdev;
 	}
+// Remark by Mike Chen 
 
-	rval = media_create_pad_link(&sd->entity, i,
-				     &isys->csi2[csi2->port].asd.sd.entity,
-				     0, 0);
+	rval = media_create_pad_link(&sd->entity, i, &isys->csi2[csi2->port].asd.sd.entity, 0, 0);
 	if (rval) {
 		dev_warn(&isys->adev->dev, "can't create link\n");
 		goto skip_unregister_subdev;
 	}
+    dev_info(&isys->adev->dev, "media_create_pad_link() OK\n");
 
 	isys->csi2[csi2->port].nlanes = csi2->nlanes;
 	return 0;
@@ -360,16 +361,19 @@ static int isys_register_ext_subdev(struct ipu_isys *isys, struct ipu_isys_subde
 	int rval;
 	int bus;
 
+    struct i2c_board_info *info = &sd_info->i2c.board_info;    
+
+    // Get sub device I2C information 
 	bus = ipu_get_i2c_bus_id(sd_info->i2c.i2c_adapter_id, sd_info->i2c.i2c_adapter_bdf,	sizeof(sd_info->i2c.i2c_adapter_bdf));
 	if (bus < 0) {
 		dev_err(&isys->adev->dev, "getting i2c bus id for adapter %d (bdf %s) failed",
 			sd_info->i2c.i2c_adapter_id, sd_info->i2c.i2c_adapter_bdf);
 		return -ENOENT;
 	}
-
-	dev_info(&isys->adev->dev, "got i2c bus id %d for adapter %d (bdf %s)", bus,
-		 sd_info->i2c.i2c_adapter_id, sd_info->i2c.i2c_adapter_bdf);
+	dev_info(&isys->adev->dev, "got i2c bus id %d for adapter %d (bdf %s)", 
+             bus, sd_info->i2c.i2c_adapter_id, sd_info->i2c.i2c_adapter_bdf);
 	
+    // Create new I2C sub device 
     adapter = i2c_get_adapter(bus);
 	if (!adapter) {
 		dev_warn(&isys->adev->dev, "can't find adapter\n");
@@ -378,10 +382,13 @@ static int isys_register_ext_subdev(struct ipu_isys *isys, struct ipu_isys_subde
 	dev_info(&isys->adev->dev, "creating new i2c subdev for %s (address %2.2x, bus %d)",
 		     sd_info->i2c.board_info.type, sd_info->i2c.board_info.addr, bus);
 
+    // Assign CSI port 
+    // Remark by Mike Chen
+    
 	if (sd_info->csi2) {
 		dev_info(&isys->adev->dev, "sensor device on CSI port: %d\n", sd_info->csi2->port);
 		if (sd_info->csi2->port >= isys->pdata->ipdata->csi2.nports || !isys->csi2[sd_info->csi2->port].isys) {
-			dev_warn(&isys->adev->dev, "invalid csi2 port %u\n", sd_info->csi2->port);
+			dev_warn(&isys->adev->dev, "isys_register_ext_subdev: invalid csi2 port %u\n", sd_info->csi2->port);
 			rval = -EINVAL;
 			goto skip_put_adapter;
 		}
@@ -389,13 +396,21 @@ static int isys_register_ext_subdev(struct ipu_isys *isys, struct ipu_isys_subde
     else {
 		dev_info(&isys->adev->dev, "non camera subdevice\n"); 
 	}
+    dev_info(&isys->adev->dev, "--> sensor device on CSI OK!\n"); 
+    //
 
 	client = isys_find_i2c_subdev(adapter, sd_info);
 	if (client) {
-		dev_dbg(&isys->adev->dev, "Device exists\n");
+		dev_info(&isys->adev->dev, "Device exists\n");
 		rval = 0;
 		goto skip_put_adapter;
 	}
+
+    // Add by Mike Chen
+    pr_info("adaptor = %d, info->type = %s, info->addr = 0x%x\n", 
+             adapter->nr, sd_info->i2c.board_info.type, sd_info->i2c.board_info.addr);
+    pr_info("%s\n", info->type);
+    //
 
 	sd = v4l2_i2c_new_subdev_board(&isys->v4l2_dev, adapter, &sd_info->i2c.board_info, NULL);
 	if (!sd) {
@@ -403,6 +418,7 @@ static int isys_register_ext_subdev(struct ipu_isys *isys, struct ipu_isys_subde
 		rval = -EINVAL;
 		goto skip_put_adapter;
 	}
+	dev_info(&isys->adev->dev, "create new I2C subdev\n");
 
 	if (!sd_info->csi2)
 		return 0;
@@ -461,15 +477,74 @@ skip_put_adapter:
 	return 0;
 }
 
+// Add by Mike Chen
+struct max9296_platform_data {
+	unsigned int port;
+	unsigned int lanes;
+	uint32_t i2c_slave_address;
+	int irq_pin;
+	unsigned int irq_pin_flags;
+	char irq_pin_name[16];
+	int reset_pin;
+	int detect_pin;
+	char suffix;
+	int gpios[4];
+};
+
+static struct ipu_isys_csi2_config max9296_csi2_cfg = {
+	.nlanes = 2,
+	.port   = 0,
+};
+
+static struct max9296_platform_data max9296_pdata = {
+	.port              = 0,
+	.lanes             = 2,
+	.i2c_slave_address = 0x48,
+	.irq_pin           = -1,
+	.irq_pin_name      = "",
+	.irq_pin_flags     = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
+	.suffix            = 'a',
+	.gpios             = {-1, 0, 0, 0},
+};
+
+static struct ipu_isys_subdev_info max9296_sd = {
+	.csi2 = &max9296_csi2_cfg,
+	.i2c = {
+	    .board_info = {
+		    I2C_BOARD_INFO("i2c:max9296", 0x48),
+		    .platform_data = &max9296_pdata,
+	    },
+	    .i2c_adapter_bdf = "0000:00:15.1",
+	},
+};
+
+static struct ipu_isys_clk_mapping clk_mapping[] = {
+	{ CLKDEV_INIT(NULL, NULL, NULL), NULL }
+};
+
+static struct ipu_isys_subdev_pdata _pdata = {
+    .subdevs = (struct ipu_isys_subdev_info *[]) {
+        &max9296_sd,
+    },
+    .clk_map = clk_mapping,
+};
+
+// Add end
+
 static void isys_register_ext_subdevs(struct ipu_isys *isys)
 {
 	struct ipu_isys_subdev_pdata *spdata = isys->pdata->spdata;
 	struct ipu_isys_subdev_info **sd_info;
 
+    // Add by Mike Chen
+    spdata = &_pdata;
+    // 
+
 	if (!spdata) {
 		dev_info(&isys->adev->dev, "no subdevice info provided\n");
 		return;
 	}
+
 	for (sd_info = spdata->subdevs; *sd_info; sd_info++)
 		isys_register_ext_subdev(isys, *sd_info);
 }
@@ -503,8 +578,7 @@ static void isys_unregister_subdevices(struct ipu_isys *isys)
 
 static int isys_register_subdevices(struct ipu_isys *isys)
 {
-	const struct ipu_isys_internal_csi2_pdata *csi2 =
-	    &isys->pdata->ipdata->csi2;
+	const struct ipu_isys_internal_csi2_pdata *csi2 =  &isys->pdata->ipdata->csi2;
 	struct ipu_isys_csi2_be_soc *csi2_be_soc;
 #if IS_ENABLED(CONFIG_VIDEO_INTEL_IPU_USE_PLATFORMDATA)
 	struct ipu_isys_subdev_pdata *spdata = isys->pdata->spdata;
@@ -526,8 +600,7 @@ static int isys_register_subdevices(struct ipu_isys *isys)
 			if ((*sd_info)->csi2) {
 				i = (*sd_info)->csi2->port;
 				if (i >= csi2->nports) {
-					dev_warn(&isys->adev->dev,
-						 "invalid csi2 port %u\n", i);
+					dev_warn(&isys->adev->dev, "isys_register_subdevices: invalid csi2 port %u\n", i);
 					continue;
 				}
 				bitmap_set(csi2_enable, i, 1);
@@ -537,8 +610,7 @@ static int isys_register_subdevices(struct ipu_isys *isys)
 		bitmap_fill(csi2_enable, 32);
 	}
 #endif
-	isys->csi2 = devm_kcalloc(&isys->adev->dev, csi2->nports,
-				  sizeof(*isys->csi2), GFP_KERNEL);
+	isys->csi2 = devm_kcalloc(&isys->adev->dev, csi2->nports, sizeof(*isys->csi2), GFP_KERNEL);
 	if (!isys->csi2) {
 		rval = -ENOMEM;
 		goto fail;
@@ -549,9 +621,7 @@ static int isys_register_subdevices(struct ipu_isys *isys)
 		if (!test_bit(i, csi2_enable))
 			continue;
 #endif
-		rval = ipu_isys_csi2_init(&isys->csi2[i], isys,
-					  isys->pdata->base +
-					  csi2->offsets[i], i);
+		rval = ipu_isys_csi2_init(&isys->csi2[i], isys, isys->pdata->base + csi2->offsets[i], i);
 		if (rval)
 			goto fail;
 
@@ -563,19 +633,16 @@ static int isys_register_subdevices(struct ipu_isys *isys)
 		dev_warn(&isys->adev->dev, "Invalid video node number %d\n", vnode_num); }
 
 	for (k = 0; k < NR_OF_CSI2_BE_SOC_DEV; k++) {
-		rval = ipu_isys_csi2_be_soc_init(&isys->csi2_be_soc[k],
-						 isys, k);
+		rval = ipu_isys_csi2_be_soc_init(&isys->csi2_be_soc[k], isys, k);
 		if (rval) {
-			dev_info(&isys->adev->dev,
-				 "can't register csi2 soc be device %d\n", k);
+			dev_info(&isys->adev->dev, "can't register csi2 soc be device %d\n", k);
 			goto fail;
 		}
 	}
 
 	rval = ipu_isys_csi2_be_init(&isys->csi2_be, isys);
 	if (rval) {
-		dev_info(&isys->adev->dev,
-			 "can't register raw csi2 be device\n");
+		dev_info(&isys->adev->dev, "can't register raw csi2 be device\n");
 		goto fail;
 	}
 
@@ -584,25 +651,18 @@ static int isys_register_subdevices(struct ipu_isys *isys)
 		if (!test_bit(i, csi2_enable))
 			continue;
 #endif
-		rval = media_create_pad_link(&isys->csi2[i].asd.sd.entity,
-					     CSI2_PAD_SOURCE,
-					     &isys->csi2_be.asd.sd.entity,
-					     CSI2_BE_PAD_SINK, 0);
+		rval = media_create_pad_link(&isys->csi2[i].asd.sd.entity, CSI2_PAD_SOURCE, 
+                                     &isys->csi2_be.asd.sd.entity, CSI2_BE_PAD_SINK, 0);
 		if (rval) {
-			dev_info(&isys->adev->dev,
-				 "can't create link csi2 <=> csi2_be\n");
+			dev_info(&isys->adev->dev, "can't create link csi2 <=> csi2_be\n");
 			goto fail;
 		}
 		for (k = 0; k < NR_OF_CSI2_BE_SOC_DEV; k++) {
 			csi2_be_soc = &isys->csi2_be_soc[k];
-			rval =
-			    media_create_pad_link(&isys->csi2[i].asd.sd.entity,
-						  CSI2_PAD_SOURCE,
-						  &csi2_be_soc->asd.sd.entity,
-						  CSI2_BE_SOC_PAD_SINK, 0);
+			rval = media_create_pad_link(&isys->csi2[i].asd.sd.entity, CSI2_PAD_SOURCE,
+						                 &csi2_be_soc->asd.sd.entity, CSI2_BE_SOC_PAD_SINK, 0);
 			if (rval) {
-				dev_info(&isys->adev->dev,
-					 "can't create link csi2->be_soc\n");
+				dev_info(&isys->adev->dev, "can't create link csi2->be_soc\n");
 				goto fail;
 			}
 		}
@@ -618,54 +678,38 @@ fail:
 #if !IS_ENABLED(CONFIG_VIDEO_INTEL_IPU_USE_PLATFORMDATA)
 /* The .bound() notifier callback when a match is found */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0)
-static int isys_notifier_bound(struct v4l2_async_notifier *notifier,
-			       struct v4l2_subdev *sd,
-			       struct v4l2_async_subdev *asd)
+static int isys_notifier_bound(struct v4l2_async_notifier *notifier, struct v4l2_subdev *sd, struct v4l2_async_subdev *asd)
 {
-	struct ipu_isys *isys = container_of(notifier,
-					struct ipu_isys, notifier);
-	struct sensor_async_subdev *s_asd = container_of(asd,
-					struct sensor_async_subdev, asd);
+	struct ipu_isys *isys = container_of(notifier, struct ipu_isys, notifier);
+	struct sensor_async_subdev *s_asd = container_of(asd, struct sensor_async_subdev, asd);
 
-	dev_info(&isys->adev->dev, "bind %s nlanes is %d port is %d\n",
-		 sd->name, s_asd->csi2.nlanes, s_asd->csi2.port);
+	dev_info(&isys->adev->dev, "bind %s nlanes is %d port is %d\n", sd->name, s_asd->csi2.nlanes, s_asd->csi2.port);
 	isys_complete_ext_device_registration(isys, sd, &s_asd->csi2);
 
 	return v4l2_device_register_subdev_nodes(&isys->v4l2_dev);
 }
 
-static void isys_notifier_unbind(struct v4l2_async_notifier *notifier,
-				 struct v4l2_subdev *sd,
-				 struct v4l2_async_subdev *asd)
+static void isys_notifier_unbind(struct v4l2_async_notifier *notifier, struct v4l2_subdev *sd, struct v4l2_async_subdev *asd)
 {
-	struct ipu_isys *isys = container_of(notifier,
-					struct ipu_isys, notifier);
+	struct ipu_isys *isys = container_of(notifier, struct ipu_isys, notifier);
 
 	dev_info(&isys->adev->dev, "unbind %s\n", sd->name);
 }
 #else
-static int isys_notifier_bound(struct v4l2_async_notifier *notifier,
-			       struct v4l2_subdev *sd,
-			       struct v4l2_async_connection *asc)
+static int isys_notifier_bound(struct v4l2_async_notifier *notifier, struct v4l2_subdev *sd, struct v4l2_async_connection *asc)
 {
-	struct ipu_isys *isys = container_of(notifier,
-					struct ipu_isys, notifier);
-	struct sensor_async_sd *s_asd = container_of(asc,
-					struct sensor_async_sd, asc);
+	struct ipu_isys *isys = container_of(notifier, struct ipu_isys, notifier);
+	struct sensor_async_sd *s_asd = container_of(asc, struct sensor_async_sd, asc);
 
-	dev_info(&isys->adev->dev, "bind %s nlanes is %d port is %d\n",
-		 sd->name, s_asd->csi2.nlanes, s_asd->csi2.port);
+	dev_info(&isys->adev->dev, "bind %s nlanes is %d port is %d\n", sd->name, s_asd->csi2.nlanes, s_asd->csi2.port);
 	isys_complete_ext_device_registration(isys, sd, &s_asd->csi2);
 
 	return v4l2_device_register_subdev_nodes(&isys->v4l2_dev);
 }
 
-static void isys_notifier_unbind(struct v4l2_async_notifier *notifier,
-				 struct v4l2_subdev *sd,
-				 struct v4l2_async_connection *asc)
+static void isys_notifier_unbind(struct v4l2_async_notifier *notifier, struct v4l2_subdev *sd, struct v4l2_async_connection *asc)
 {
-	struct ipu_isys *isys = container_of(notifier,
-					struct ipu_isys, notifier);
+	struct ipu_isys *isys = container_of(notifier, struct ipu_isys, notifier);
 
 	dev_info(&isys->adev->dev, "unbind %s\n", sd->name);
 }
@@ -673,8 +717,7 @@ static void isys_notifier_unbind(struct v4l2_async_notifier *notifier,
 
 static int isys_notifier_complete(struct v4l2_async_notifier *notifier)
 {
-	struct ipu_isys *isys = container_of(notifier,
-					struct ipu_isys, notifier);
+	struct ipu_isys *isys = container_of(notifier, struct ipu_isys, notifier);
 
 	dev_info(&isys->adev->dev, "All sensor registration completed.\n");
 
@@ -688,14 +731,11 @@ static const struct v4l2_async_notifier_operations isys_async_ops = {
 };
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0)
-static int isys_fwnode_parse(struct device *dev,
-			     struct v4l2_fwnode_endpoint *vep,
-			     struct v4l2_async_subdev *asd)
+static int isys_fwnode_parse(struct device *dev, struct v4l2_fwnode_endpoint *vep, struct v4l2_async_subdev *asd)
 {
-	struct sensor_async_subdev *s_asd =
-			container_of(asd, struct sensor_async_subdev, asd);
+	struct sensor_async_subdev *s_asd =	container_of(asd, struct sensor_async_subdev, asd);
 
-	s_asd->csi2.port = vep->base.port;
+	s_asd->csi2.port   = vep->base.port;
 	s_asd->csi2.nlanes = vep->bus.mipi_csi2.num_data_lanes;
 
 	return 0;
@@ -710,14 +750,10 @@ static int isys_notifier_init(struct ipu_isys *isys)
 	int ret;
 
 	v4l2_async_notifier_init(&isys->notifier);
-	ret = v4l2_async_notifier_parse_fwnode_endpoints(&isp->pdev->dev,
-							 &isys->notifier,
-							 asd_struct_size,
-							 isys_fwnode_parse);
+	ret = v4l2_async_notifier_parse_fwnode_endpoints(&isp->pdev->dev, &isys->notifier, asd_struct_size, isys_fwnode_parse);
 
 	if (ret < 0) {
-		dev_err(&isys->adev->dev,
-			"v4l2 parse_fwnode_endpoints() failed: %d\n", ret);
+		dev_err(&isys->adev->dev, "v4l2 parse_fwnode_endpoints() failed: %d\n", ret);
 		return ret;
 	}
 
@@ -730,8 +766,7 @@ static int isys_notifier_init(struct ipu_isys *isys)
 	isys->notifier.ops = &isys_async_ops;
 	ret = v4l2_async_notifier_register(&isys->v4l2_dev, &isys->notifier);
 	if (ret) {
-		dev_err(&isys->adev->dev,
-			"failed to register async notifier : %d\n", ret);
+		dev_err(&isys->adev->dev, "failed to register async notifier : %d\n", ret);
 		v4l2_async_notifier_cleanup(&isys->notifier);
 	}
 
@@ -745,17 +780,15 @@ static int isys_notifier_init(struct ipu_isys *isys)
 	int ret;
 
 	v4l2_async_nf_init(&isys->notifier);
-	ret = v4l2_async_nf_parse_fwnode_endpoints(&isp->pdev->dev,
-						   &isys->notifier,
-						   asd_struct_size,
-						   isys_fwnode_parse);
+
+	ret = v4l2_async_nf_parse_fwnode_endpoints(&isp->pdev->dev, &isys->notifier, asd_struct_size, isys_fwnode_parse);
 	if (ret < 0) {
-		dev_err(&isys->adev->dev,
-			"v4l2 parse_fwnode_endpoints() failed: %d\n", ret);
+		dev_err(&isys->adev->dev, "v4l2 parse_fwnode_endpoints() failed: %d\n", ret);
 		return ret;
 	}
+
 	if (list_empty(&isys->notifier.asd_list)) {
-		/* isys probe could continue with async subdevs missing */
+		// isys probe could continue with async subdevs missing 
 		dev_warn(&isys->adev->dev, "no subdev found in graph\n");
 		return 0;
 	}
@@ -763,8 +796,7 @@ static int isys_notifier_init(struct ipu_isys *isys)
 	isys->notifier.ops = &isys_async_ops;
 	ret = v4l2_async_nf_register(&isys->v4l2_dev, &isys->notifier);
 	if (ret) {
-		dev_err(&isys->adev->dev,
-			"failed to register async notifier : %d\n", ret);
+		dev_err(&isys->adev->dev, "failed to register async notifier : %d\n", ret);
 		v4l2_async_nf_cleanup(&isys->notifier);
 	}
 
@@ -1319,7 +1351,7 @@ static int isys_probe(struct ipu_bus_device *adev)
 
 	/* By default, short packet is captured from T-Unit. */
 	isys->short_packet_source = IPU_ISYS_SHORT_PACKET_FROM_RECEIVER;
-	isys->adev = adev;
+	isys->adev  = adev;
 	isys->pdata = adev->pdata;
 
 	/* initial streamID for different sensor types */
@@ -1405,10 +1437,8 @@ static int isys_probe(struct ipu_bus_device *adev)
 			goto release_firmware;
 
 		isys->pkg_dir =
-		    ipu_cpd_create_pkg_dir(adev, isp->cpd_fw->data,
-					   sg_dma_address(isys->fw_sgt.sgl),
-					   &isys->pkg_dir_dma_addr,
-					   &isys->pkg_dir_size);
+		    ipu_cpd_create_pkg_dir(adev, isp->cpd_fw->data, sg_dma_address(isys->fw_sgt.sgl),
+					               &isys->pkg_dir_dma_addr, &isys->pkg_dir_size);
 		if (!isys->pkg_dir) {
 			rval = -ENOMEM;
 			goto remove_shared_buffer;
@@ -1425,8 +1455,7 @@ static int isys_probe(struct ipu_bus_device *adev)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 9, 0)
 	cpu_latency_qos_add_request(&isys->pm_qos, PM_QOS_DEFAULT_VALUE);
 #else
-	pm_qos_add_request(&isys->pm_qos, PM_QOS_CPU_DMA_LATENCY,
-			   PM_QOS_DEFAULT_VALUE);
+	pm_qos_add_request(&isys->pm_qos, PM_QOS_CPU_DMA_LATENCY, PM_QOS_DEFAULT_VALUE);
 #endif
 	alloc_fw_msg_bufs(isys, 20);
 
