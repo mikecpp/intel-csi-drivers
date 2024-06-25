@@ -14,17 +14,17 @@ intel-ipu6-objs      += ../ipu.o \
 
 intel-ipu6-isys-objs += ../ipu-isys.o \
 					   ../ipu-isys-csi2.o \
-					   ipu6-isys.o \
-					   ipu6-isys-phy.o \
-					   ipu6-isys-dwc-phy.o \
-					   ipu6-isys-csi2.o \
-					   ipu6-isys-gpc.o \
 					   ../ipu-isys-csi2-be-soc.o \
 					   ../ipu-fw-isys.o \
 					   ../ipu-isys-video.o \
 					   ../ipu-isys-queue.o \
 					   ../ipu-isys-subdev.o \
-					   ../ipu-isys-csi2-be.o
+					   ../ipu-isys-csi2-be.o \
+					   ipu6-isys.o \
+					   ipu6-isys-phy.o \
+					   ipu6-isys-dwc-phy.o \
+					   ipu6-isys-csi2.o \
+					   ipu6-isys-gpc.o \
 
 intel-ipu6-psys-objs += ../ipu-psys.o \
 					   ipu6-psys.o \

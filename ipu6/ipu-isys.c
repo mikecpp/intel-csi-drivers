@@ -336,7 +336,6 @@ static int isys_complete_ext_device_registration(struct ipu_isys *isys, struct v
 		rval = -ENOENT;
 		goto skip_unregister_subdev;
 	}
-// Remark by Mike Chen 
 
 	rval = media_create_pad_link(&sd->entity, i, &isys->csi2[csi2->port].asd.sd.entity, 0, 0);
 	if (rval) {
@@ -382,9 +381,6 @@ static int isys_register_ext_subdev(struct ipu_isys *isys, struct ipu_isys_subde
 	dev_info(&isys->adev->dev, "creating new i2c subdev for %s (address %2.2x, bus %d)",
 		     sd_info->i2c.board_info.type, sd_info->i2c.board_info.addr, bus);
 
-    // Assign CSI port 
-    // Remark by Mike Chen
-    
 	if (sd_info->csi2) {
 		dev_info(&isys->adev->dev, "sensor device on CSI port: %d\n", sd_info->csi2->port);
 		if (sd_info->csi2->port >= isys->pdata->ipdata->csi2.nports || !isys->csi2[sd_info->csi2->port].isys) {
@@ -492,13 +488,13 @@ struct max9296_platform_data {
 };
 
 static struct ipu_isys_csi2_config max9296_csi2_cfg = {
-	.nlanes = 2,
+	.nlanes = 4,
 	.port   = 0,
 };
 
 static struct max9296_platform_data max9296_pdata = {
 	.port              = 0,
-	.lanes             = 2,
+	.lanes             = 4,
 	.i2c_slave_address = 0x48,
 	.irq_pin           = -1,
 	.irq_pin_name      = "",

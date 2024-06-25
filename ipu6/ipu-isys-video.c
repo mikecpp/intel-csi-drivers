@@ -1742,11 +1742,9 @@ static unsigned int get_comp_format(u32 code)
 }
 
 /* Create stream and start it using the CSS FW ABI. */
-static int start_stream_firmware(struct ipu_isys_video *av,
-				 struct ipu_isys_buffer_list *bl)
+static int start_stream_firmware(struct ipu_isys_video *av, struct ipu_isys_buffer_list *bl)
 {
-	struct ipu_isys_pipeline *ip =
-		to_ipu_isys_pipeline(media_entity_pipeline(&av->vdev.entity));
+	struct ipu_isys_pipeline *ip = to_ipu_isys_pipeline(media_entity_pipeline(&av->vdev.entity));
 	struct device *dev = &av->isys->adev->dev;
 	struct v4l2_subdev_selection sel_fmt = {
 		.which = V4L2_SUBDEV_FORMAT_ACTIVE,
@@ -1856,12 +1854,8 @@ static int start_stream_firmware(struct ipu_isys_video *av,
 
 	ipu_fw_isys_dump_stream_cfg(dev, stream_cfg);
 
-	rval = ipu_fw_isys_complex_cmd(av->isys,
-				       ip->stream_handle,
-				       stream_cfg,
-				       to_dma_addr(msg),
-				       sizeof(*stream_cfg),
-				       IPU_FW_ISYS_SEND_TYPE_STREAM_OPEN);
+	rval = ipu_fw_isys_complex_cmd(av->isys, ip->stream_handle, stream_cfg, to_dma_addr(msg),
+				                   sizeof(*stream_cfg), IPU_FW_ISYS_SEND_TYPE_STREAM_OPEN);
 	if (rval < 0) {
 		dev_err(dev, "can't open stream (%d)\n", rval);
 		ipu_put_fw_mgs_buf(av->isys, (uintptr_t)stream_cfg);
@@ -1870,8 +1864,7 @@ static int start_stream_firmware(struct ipu_isys_video *av,
 
 	get_stream_opened(av);
 
-	tout = wait_for_completion_timeout(&ip->stream_open_completion,
-					   IPU_LIB_CALL_TIMEOUT_JIFFIES);
+	tout = wait_for_completion_timeout(&ip->stream_open_completion, IPU_LIB_CALL_TIMEOUT_JIFFIES);
 
 	ipu_put_fw_mgs_buf(av->isys, (uintptr_t)stream_cfg);
 
@@ -1908,20 +1901,14 @@ static int start_stream_firmware(struct ipu_isys_video *av,
 		dev_dbg(dev, "start stream: start and capture\n");
 
 		send_type = IPU_FW_ISYS_SEND_TYPE_STREAM_START_AND_CAPTURE;
-		ipu_fw_isys_dump_frame_buff_set(dev, buf,
-						stream_cfg->nof_output_pins);
-		rval = ipu_fw_isys_complex_cmd(av->isys,
-					       ip->stream_handle,
-					       buf, to_dma_addr(msg),
-					       sizeof(*buf),
-					       send_type);
+		ipu_fw_isys_dump_frame_buff_set(dev, buf, stream_cfg->nof_output_pins);
+		rval = ipu_fw_isys_complex_cmd(av->isys, ip->stream_handle, buf, to_dma_addr(msg),
+					                   sizeof(*buf), send_type);
 	} else {
 		dev_dbg(dev, "start stream: start\n");
 
 		send_type = IPU_FW_ISYS_SEND_TYPE_STREAM_START;
-		rval = ipu_fw_isys_simple_cmd(av->isys,
-					      ip->stream_handle,
-					      send_type);
+		rval = ipu_fw_isys_simple_cmd(av->isys, ip->stream_handle, send_type);
 	}
 
 	if (rval < 0) {
@@ -1947,8 +1934,8 @@ static int start_stream_firmware(struct ipu_isys_video *av,
 
 			ipu_fw_isys_dump_frame_buff_set(dev, buf, stream_cfg->nof_output_pins);
 			rval = ipu_fw_isys_complex_cmd(av->isys, ip->stream_handle, buf,
-				to_dma_addr(msg), sizeof(*buf),
-				IPU_FW_ISYS_SEND_TYPE_STREAM_CAPTURE);
+				                           to_dma_addr(msg), sizeof(*buf),
+				                           IPU_FW_ISYS_SEND_TYPE_STREAM_CAPTURE);
 
 			if (rval < 0) {
 				dev_err(dev, "can't queue buffers (%d)\n", rval);
@@ -1989,25 +1976,21 @@ out_put_stream_handle:
 
 static void stop_streaming_firmware(struct ipu_isys_video *av)
 {
-	struct ipu_isys_pipeline *ip =
-		to_ipu_isys_pipeline(media_entity_pipeline(&av->vdev.entity));
+	struct ipu_isys_pipeline *ip = to_ipu_isys_pipeline(media_entity_pipeline(&av->vdev.entity));
 	struct device *dev = &av->isys->adev->dev;
 	int rval, tout;
-	enum ipu_fw_isys_send_type send_type =
-		IPU_FW_ISYS_SEND_TYPE_STREAM_FLUSH;
+	enum ipu_fw_isys_send_type send_type = IPU_FW_ISYS_SEND_TYPE_STREAM_FLUSH;
 
 	reinit_completion(&ip->stream_stop_completion);
 
-	rval = ipu_fw_isys_simple_cmd(av->isys, ip->stream_handle,
-				      send_type);
+	rval = ipu_fw_isys_simple_cmd(av->isys, ip->stream_handle, send_type);
 
 	if (rval < 0) {
 		dev_err(dev, "can't stop stream (%d)\n", rval);
 		return;
 	}
 
-	tout = wait_for_completion_timeout(&ip->stream_stop_completion,
-					   IPU_LIB_CALL_TIMEOUT_JIFFIES_RESET);
+	tout = wait_for_completion_timeout(&ip->stream_stop_completion, IPU_LIB_CALL_TIMEOUT_JIFFIES_RESET);
 	if (!tout)
 		dev_err(dev, "stream stop time out\n");
 	else if (ip->error)

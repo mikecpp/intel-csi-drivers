@@ -14,12 +14,9 @@
 #include <media/v4l2-ioctl.h>
 #include <media/v4l2-async.h>
 
-#define I2C_BUS_AVAILABLE               1
 #define DEVICE_NAME_MAX9296             "i2c:max9296" 
 #define DEVICE_ADDR_MAX9296             0x48
-#define DEVICE_NAME_MAX9295             "max9295" 
 #define DEVICE_ADDR_MAX9295             0x62
-#define RES_128_64                      0 
 
 struct max9296_mode {
 	u32 width;
@@ -166,7 +163,25 @@ static void registers_init(struct max9296 *sensor)
 
 static int max9296_set_stream(struct v4l2_subdev *sd, int enable)
 {
-    pr_info("--> max9296_set_stream()\n");
+    // int ret;
+    struct max9296 *sensor = to_max9296(sd);
+
+    mutex_lock(&sensor->mutex);
+    if (enable) {
+        pr_info("--> max9296_set_stream() start!\n");    
+        /*
+	    ret =  __v4l2_ctrl_handler_setup(sensor->sd.ctrl_handler);
+	    if (ret != 0)
+            pr_err("__v4l2_ctrl_handler_setup() fail (%d)\n", ret);
+		    return ret;
+        
+        */
+    }
+    else {
+        pr_info("--> max9296_set_stream() stop!\n");    
+    }
+
+    mutex_unlock(&sensor->mutex);
 
     return 0;
 }
@@ -332,7 +347,6 @@ static int max9296_probe(struct i2c_client *client)
     dev_t  *dev_num = &client->dev.devt;
 
     // _client = client;
-    pr_info("max9296_probe() OK!\n");    
 	sensor = devm_kzalloc(&client->dev, sizeof(*sensor), GFP_KERNEL);
 	if (!sensor)
 		return -ENOMEM;
@@ -371,7 +385,8 @@ static int max9296_probe(struct i2c_client *client)
         pr_err("v4l2_async_register_subdev_sensor() fail! (%d)", ret); 
         return ret;
     }
-    pr_info("v4l2_async_register_subdev_sensor() OK! \n");
+
+    pr_info("max9296_probe() OK!\n");    
 
 	return 0; 
 }
