@@ -376,7 +376,7 @@ void update_pdata(struct device *dev, struct ipu_isys_subdev_info *new_subdev, e
 	struct ipu_isys_subdev_info *acpi_subdev;
 	bool found = false;
 
-    pr_info("--> update_pdata()\n");
+    // pr_info("--> update_pdata()\n");
 
 	acpi_subdev = new_subdev;
 
@@ -387,7 +387,7 @@ void update_pdata(struct device *dev, struct ipu_isys_subdev_info *new_subdev, e
 	if (ptr_built_in_pdata) {
 		struct ipu_isys_subdev_info **subdevs, *sd_info;
 
-        pr_info("--> ptr_build_in_pdata\n");        
+        // pr_info("--> ptr_build_in_pdata\n");        
 
 		for (subdevs = ptr_built_in_pdata->subdevs; *subdevs; subdevs++) {
 			sd_info = *subdevs;
@@ -797,7 +797,7 @@ int populate_sensor_pdata(struct device *dev, struct ipu_isys_subdev_info **sens
 {
 	int ret;
 
-    pr_info("--> populate_sensor_pdata()\n");
+    // pr_info("--> populate_sensor_pdata()\n");
 
 	if (connect == TYPE_DIRECT) {
 		/* sensor csi2 info */
@@ -876,7 +876,7 @@ int populate_sensor_pdata(struct device *dev, struct ipu_isys_subdev_info **sens
 		}
 	}
 
-    pr_info("--> populate_sensor_pdata() return OK!\n");
+    // pr_info("--> populate_sensor_pdata() return OK!\n");
 
 	return 0;
 }
@@ -890,7 +890,7 @@ int get_sensor_pdata(struct i2c_client *client, struct ipu_camera_module_data *d
 	struct ipu_isys_subdev_info *sensor_sd;
 	int rval;
 
-    pr_info("--> get_sensor_pdata()\n");
+    // pr_info("--> get_sensor_pdata()\n");
 
 	cam_data = kzalloc(sizeof(*cam_data), GFP_KERNEL);
 	if (!cam_data)
@@ -945,7 +945,7 @@ int get_sensor_pdata(struct i2c_client *client, struct ipu_camera_module_data *d
 	kfree(cam_data);
 	kfree(ctl_data);
 
-    pr_info("--> get_sensor_pdata() return OK!\n");
+    // pr_info("--> get_sensor_pdata() return OK!\n");
     pr_info("client->name = %s, addr = 0x%x\n", client->name, client->addr);
 
 	return rval;
