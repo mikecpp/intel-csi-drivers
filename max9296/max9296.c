@@ -17,6 +17,7 @@
 #define DEVICE_NAME_MAX9296             "i2c:max9296" 
 #define DEVICE_ADDR_MAX9296             0x48
 #define DEVICE_ADDR_MAX9295             0x62
+#define MAX9296_LINK_FREQ               750000000ULL
 
 struct max9296_mode {
 	u32 width;
@@ -167,7 +168,9 @@ static int max9296_set_stream(struct v4l2_subdev *sd, int enable)
     struct max9296 *sensor = to_max9296(sd);
 
     mutex_lock(&sensor->mutex);
-    if (enable) {
+    if (enable) { // start Stream 
+        registers_init(sensor);
+        msleep(1000);
         pr_info("--> max9296_set_stream() start!\n");    
         /*
 	    ret =  __v4l2_ctrl_handler_setup(sensor->sd.ctrl_handler);
@@ -177,7 +180,7 @@ static int max9296_set_stream(struct v4l2_subdev *sd, int enable)
         
         */
     }
-    else {
+    else {        // stop stream 
         pr_info("--> max9296_set_stream() stop!\n");    
     }
 
@@ -296,8 +299,6 @@ static const struct v4l2_ctrl_ops max9296_ctrl_ops = {
 	.s_ctrl = max9296_set_ctrl,
 };
 
-#define MAX9296_LINK_FREQ   560000000ULL
-
 static const s64 link_freq_menu_items[] = {
 	MAX9296_LINK_FREQ,
 };
@@ -326,7 +327,7 @@ static int max9296_init_controls(struct max9296 *sensor)
 	if (sensor->link_freq)
 		sensor->link_freq->flags |= V4L2_CTRL_FLAG_READ_ONLY;
 
-	pixel_rate_max = 1000;
+	pixel_rate_max = MAX9296_LINK_FREQ;
 	pixel_rate_min = 0;
 
     // V4L2_CID_PIXEL_RATE 
