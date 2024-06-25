@@ -1916,9 +1916,7 @@ static int start_stream_firmware(struct ipu_isys_video *av,
 		dev_dbg(dev, "start stream: start\n");
 
 		send_type = IPU_FW_ISYS_SEND_TYPE_STREAM_START;
-		rval = ipu_fw_isys_simple_cmd(av->isys,
-					      ip->stream_handle,
-					      send_type);
+		rval = ipu_fw_isys_simple_cmd(av->isys, ip->stream_handle, send_type);
 	}
 
 	if (rval < 0) {
