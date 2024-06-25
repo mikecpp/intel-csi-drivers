@@ -392,8 +392,7 @@ static int isys_register_ext_subdev(struct ipu_isys *isys, struct ipu_isys_subde
     else {
 		dev_info(&isys->adev->dev, "non camera subdevice\n"); 
 	}
-    dev_info(&isys->adev->dev, "--> sensor device on CSI OK!\n"); 
-    //
+    // dev_info(&isys->adev->dev, "--> sensor device on CSI OK!\n"); 
 
 	client = isys_find_i2c_subdev(adapter, sd_info);
 	if (client) {

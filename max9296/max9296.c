@@ -17,7 +17,10 @@
 #define DEVICE_NAME_MAX9296             "i2c:max9296" 
 #define DEVICE_ADDR_MAX9296             0x48
 #define DEVICE_ADDR_MAX9295             0x62
-#define MAX9296_LINK_FREQ               750000000ULL
+
+#define MAX9296_LINK_FREQ               750000000ULL 
+#define MAX9296_WIDTH                   1920
+#define MAX9296_HEIGHT                  1280
 
 struct max9296_mode {
 	u32 width;
@@ -26,8 +29,8 @@ struct max9296_mode {
 
 static struct max9296_mode supported_modes[] = {
 	{
-		.width   = 1920,
-		.height  = 1200,
+		.width   = MAX9296_WIDTH,
+		.height  = MAX9296_HEIGHT,
 	},
 };
 
@@ -98,7 +101,7 @@ static int max9295_write(struct max9296 *sensor, uint16_t reg, uint8_t val)
     return 0;
 }
 
-static void registers_init(struct max9296 *sensor)
+static void registers_setup(struct max9296 *sensor)
 {
     max9296_write(sensor, 0x0010, 0x31);
     msleep(100);
@@ -169,7 +172,7 @@ static int max9296_set_stream(struct v4l2_subdev *sd, int enable)
 
     mutex_lock(&sensor->mutex);
     if (enable) { // start Stream 
-        registers_init(sensor);
+        registers_setup(sensor);
         msleep(1000);
         pr_info("--> max9296_set_stream() start!\n");    
         /*
@@ -252,8 +255,8 @@ static int max9296_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 
     mutex_lock(&sensor->mutex);
 
-	try_fmt->width  = 1920;
-	try_fmt->height = 1200;
+	try_fmt->width  = MAX9296_WIDTH;
+	try_fmt->height = MAX9296_HEIGHT;
 	try_fmt->code   = MEDIA_BUS_FMT_UYVY8_1X16;
 	try_fmt->field  = V4L2_FIELD_NONE;
 
@@ -356,7 +359,7 @@ static int max9296_probe(struct i2c_client *client)
     v4l2_set_subdevdata(&sensor->sd, sensor);
 
     // Initial max9296/max9295 registers 
-    registers_init(sensor);
+    registers_setup(sensor);
 
     // Initial subdev
     v4l2_i2c_subdev_init(&sensor->sd, sensor->client, &max9296_subdev_ops);

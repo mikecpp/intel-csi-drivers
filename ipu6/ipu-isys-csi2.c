@@ -234,13 +234,13 @@ static int ipu_isys_csi2_calc_timing(struct ipu_isys_csi2 *csi2, struct ipu_isys
 
 	timing->ctermen = calc_timing(CSI2_CSI_RX_DLY_CNT_TERMEN_CLANE_A, CSI2_CSI_RX_DLY_CNT_TERMEN_CLANE_B, link_freq, accinv);
 	timing->csettle = calc_timing(CSI2_CSI_RX_DLY_CNT_SETTLE_CLANE_A, CSI2_CSI_RX_DLY_CNT_SETTLE_CLANE_B, link_freq, accinv);
-	dev_info(&csi2->isys->adev->dev, "ctermen %u\n", timing->ctermen);
-	dev_info(&csi2->isys->adev->dev, "csettle %u\n", timing->csettle);
+	dev_dbg(&csi2->isys->adev->dev, "ctermen %u\n", timing->ctermen);
+	dev_dbg(&csi2->isys->adev->dev, "csettle %u\n", timing->csettle);
 
 	timing->dtermen = calc_timing(CSI2_CSI_RX_DLY_CNT_TERMEN_DLANE_A, CSI2_CSI_RX_DLY_CNT_TERMEN_DLANE_B, link_freq, accinv);
 	timing->dsettle = calc_timing(CSI2_CSI_RX_DLY_CNT_SETTLE_DLANE_A, CSI2_CSI_RX_DLY_CNT_SETTLE_DLANE_B, link_freq, accinv);
-	dev_info(&csi2->isys->adev->dev, "dtermen %u\n", timing->dtermen);
-	dev_info(&csi2->isys->adev->dev, "dsettle %u\n", timing->dsettle);
+	dev_dbg(&csi2->isys->adev->dev, "dtermen %u\n", timing->dtermen);
+	dev_dbg(&csi2->isys->adev->dev, "dsettle %u\n", timing->dsettle);
 
 	return 0;
 }
@@ -258,7 +258,7 @@ static int set_stream(struct v4l2_subdev *sd, int enable)
 	unsigned int nlanes;
 	int rval;
 
-	dev_info(&csi2->isys->adev->dev, "csi2 s_stream %d\n", enable);
+	dev_dbg(&csi2->isys->adev->dev, "csi2 s_stream %d\n", enable);
 
 	if (!ip->external->entity) {
 		WARN_ON(1);
