@@ -1,1 +1,0 @@
-cmd_/home/mike/otocam-drivers/ar0234/Module.symvers :=  scripts/mod/modpost -m -a     -o /home/mike/otocam-drivers/ar0234/Module.symvers -T /home/mike/otocam-drivers/ar0234/modules.order -i Module.symvers -e 

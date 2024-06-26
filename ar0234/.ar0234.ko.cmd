@@ -1,1 +1,0 @@
-cmd_/home/mike/otocam-drivers/ar0234/ar0234.ko := ld -r -m elf_x86_64 -z noexecstack --build-id=sha1  -T scripts/module.lds -o /home/mike/otocam-drivers/ar0234/ar0234.ko /home/mike/otocam-drivers/ar0234/ar0234.o /home/mike/otocam-drivers/ar0234/ar0234.mod.o;  true

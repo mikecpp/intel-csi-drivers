@@ -1,1 +1,0 @@
-cmd_/home/mike/otocam-drivers/isx021/isx021.ko := ld -r -m elf_x86_64 -z noexecstack --build-id=sha1  -T scripts/module.lds -o /home/mike/otocam-drivers/isx021/isx021.ko /home/mike/otocam-drivers/isx021/isx021.o /home/mike/otocam-drivers/isx021/isx021.mod.o;  true
