@@ -353,7 +353,8 @@ ipu6.o: /home/mike/otocam-drivers/ipu6/ipu6/ipu6.c \
  /home/mike/otocam-drivers/ipu6/ipu-isys-csi2-be.h \
  /home/mike/otocam-drivers/ipu6/ipu-fw-isys.h \
  /home/mike/otocam-drivers/ipu6/ipu-fw-com.h \
- /home/mike/otocam-drivers/ipu6/ipu-psys.h \
+ /home/mike/otocam-drivers/ipu6/ipu6/ipu-psys.h \
+ /home/mike/otocam-drivers/ipu6/ipu-pdata.h \
  /home/mike/otocam-drivers/ipu6/ipu-fw-psys.h \
  /home/mike/otocam-drivers/ipu6/ipu6/ipu6-platform-resources.h \
  /home/mike/otocam-drivers/ipu6/ipu6/ipu-platform-resources.h \

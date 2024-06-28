@@ -143,16 +143,23 @@ struct ipu_isys_csi2_monitor_message {
 					struct ipu_isys_csi2, asd)
 
 int ipu_isys_csi2_get_link_freq(struct ipu_isys_csi2 *csi2, __s64 *link_freq);
-int ipu_isys_csi2_init(struct ipu_isys_csi2 *csi2, struct ipu_isys *isys, void __iomem *base, unsigned int index);
+int ipu_isys_csi2_init(struct ipu_isys_csi2 *csi2,
+		       struct ipu_isys *isys,
+		       void __iomem *base, unsigned int index);
 void ipu_isys_csi2_cleanup(struct ipu_isys_csi2 *csi2);
-struct ipu_isys_buffer *ipu_isys_csi2_get_short_packet_buffer(struct ipu_isys_pipeline *ip, struct ipu_isys_buffer_list *bl);
+struct ipu_isys_buffer *
+ipu_isys_csi2_get_short_packet_buffer(struct ipu_isys_pipeline *ip,
+				      struct ipu_isys_buffer_list *bl);
 void ipu_isys_csi2_sof_event(struct ipu_isys_csi2 *csi2, unsigned int vc);
 void ipu_isys_csi2_eof_event(struct ipu_isys_csi2 *csi2, unsigned int vc);
 void ipu_isys_csi2_wait_last_eof(struct ipu_isys_csi2 *csi2);
 
 /* interface for platform specific */
-int ipu_isys_csi2_set_stream(struct v4l2_subdev *sd, struct ipu_isys_csi2_timing timing, unsigned int nlanes, int enable);
-unsigned int ipu_isys_csi2_get_current_field(struct ipu_isys_pipeline *ip, unsigned int *timestamp);
+int ipu_isys_csi2_set_stream(struct v4l2_subdev *sd,
+			     struct ipu_isys_csi2_timing timing,
+			     unsigned int nlanes, int enable);
+unsigned int ipu_isys_csi2_get_current_field(struct ipu_isys_pipeline *ip,
+					     unsigned int *timestamp);
 void ipu_isys_csi2_isr(struct ipu_isys_csi2 *csi2);
 void ipu_isys_csi2_error(struct ipu_isys_csi2 *csi2);
 

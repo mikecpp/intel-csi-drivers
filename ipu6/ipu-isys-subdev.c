@@ -798,40 +798,59 @@ int ipu_isys_subdev_close(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
 	return 0;
 }
 
-int ipu_isys_subdev_init(struct ipu_isys_subdev *asd, struct v4l2_subdev_ops *ops,
-			             unsigned int nr_ctrls, unsigned int num_pads, unsigned int num_source,
-			             unsigned int num_sink, unsigned int sd_flags, int src_pad_idx, int sink_pad_idx)
+int ipu_isys_subdev_init(struct ipu_isys_subdev *asd,
+			 struct v4l2_subdev_ops *ops,
+			 unsigned int nr_ctrls,
+			 unsigned int num_pads,
+			 unsigned int num_source,
+			 unsigned int num_sink,
+			 unsigned int sd_flags,
+			 int src_pad_idx,
+			 int sink_pad_idx)
 {
 	int i;
-	int rval = -EINVAL; 
+	int rval = -EINVAL;
 
-	mutex_init(&asd->mutex); 
-	v4l2_subdev_init(&asd->sd, ops); 
+	mutex_init(&asd->mutex);
 
-	asd->sd.flags          |= V4L2_SUBDEV_FL_HAS_DEVNODE | sd_flags; 
-	asd->sd.owner           = THIS_MODULE; 
-	asd->sd.entity.function = MEDIA_ENT_F_VID_IF_BRIDGE; 
+	v4l2_subdev_init(&asd->sd, ops);
 
-	asd->nsources = num_source; 
-	asd->nsinks   = num_sink; 
-    
-	asd->pad      = devm_kcalloc(&asd->isys->adev->dev, num_pads, sizeof(*asd->pad), GFP_KERNEL); 
+	asd->sd.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE | sd_flags;
+	asd->sd.owner = THIS_MODULE;
+	asd->sd.entity.function = MEDIA_ENT_F_VID_IF_BRIDGE;
 
-	if (src_pad_idx != ISYS_SUBDEV_NO_PAD) { 
-		for (i = 0; i < num_source; i++) 
-			asd->pad[src_pad_idx + i].flags = MEDIA_PAD_FL_SOURCE; 
+	asd->nsources = num_source;
+	asd->nsinks = num_sink;
+
+	asd->pad = devm_kcalloc(&asd->isys->adev->dev, num_pads,
+				sizeof(*asd->pad), GFP_KERNEL);
+
+	/*
+	 * Out of range IDX means that this particular type of pad
+	 * does not exist.
+	 */
+	if (src_pad_idx != ISYS_SUBDEV_NO_PAD) {
+		for (i = 0; i < num_source; i++)
+			asd->pad[src_pad_idx + i].flags = MEDIA_PAD_FL_SOURCE;
+	}
+	if (sink_pad_idx != ISYS_SUBDEV_NO_PAD) {
+		for (i = 0; i < num_sink; i++)
+			asd->pad[sink_pad_idx + i].flags = MEDIA_PAD_FL_SINK;
 	}
 
-	if (sink_pad_idx != ISYS_SUBDEV_NO_PAD) { 
-		for (i = 0; i < num_sink; i++) 
-			asd->pad[sink_pad_idx + i].flags = MEDIA_PAD_FL_SINK; 
-	}
+	asd->ffmt = devm_kcalloc(&asd->isys->adev->dev, num_pads,
+				 sizeof(*asd->ffmt), GFP_KERNEL);
 
-	asd->ffmt       = devm_kcalloc(&asd->isys->adev->dev, num_pads, sizeof(*asd->ffmt), GFP_KERNEL);
-	asd->crop       = devm_kcalloc(&asd->isys->adev->dev, num_pads, sizeof(*asd->crop), GFP_KERNEL);
-	asd->compose    = devm_kcalloc(&asd->isys->adev->dev, num_pads, sizeof(*asd->compose), GFP_KERNEL);
-	asd->valid_tgts = devm_kcalloc(&asd->isys->adev->dev, num_pads, sizeof(*asd->valid_tgts), GFP_KERNEL);
-	if (!asd->pad || !asd->ffmt || !asd->crop || !asd->compose || !asd->valid_tgts)
+	asd->crop = devm_kcalloc(&asd->isys->adev->dev, num_pads,
+				 sizeof(*asd->crop), GFP_KERNEL);
+
+	asd->compose = devm_kcalloc(&asd->isys->adev->dev, num_pads,
+				    sizeof(*asd->compose), GFP_KERNEL);
+
+	asd->valid_tgts = devm_kcalloc(&asd->isys->adev->dev, num_pads,
+				       sizeof(*asd->valid_tgts), GFP_KERNEL);
+	if (!asd->pad || !asd->ffmt || !asd->crop || !asd->compose ||
+	    !asd->valid_tgts)
 		return -ENOMEM;
 
 	rval = media_entity_pads_init(&asd->sd.entity, num_pads, asd->pad);

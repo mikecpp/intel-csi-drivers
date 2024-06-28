@@ -312,18 +312,20 @@ int ipu_isys_tpg_init(struct ipu_isys_tpg *tpg,
 
 	snprintf(tpg->av.vdev.name, sizeof(tpg->av.vdev.name),
 		 IPU_ISYS_ENTITY_PREFIX " TPG %u capture", index);
-	tpg->av.isys                        = isys;
-	tpg->av.aq.css_pin_type             = IPU_FW_ISYS_PIN_TYPE_MIPI;
-	tpg->av.pfmts                       = ipu_isys_pfmts_packed;
-	tpg->av.try_fmt_vid_mplane          = ipu_isys_tpg_try_fmt;
-	tpg->av.prepare_fw_stream           = ipu_isys_prepare_fw_cfg_default;
-	tpg->av.packed                      = true;
-	tpg->av.line_header_length          = IPU_ISYS_CSI2_LONG_PACKET_HEADER_SIZE;
-	tpg->av.line_footer_length          = IPU_ISYS_CSI2_LONG_PACKET_FOOTER_SIZE;
-	tpg->av.aq.buf_prepare              = ipu_isys_buf_prepare;
-	tpg->av.aq.fill_frame_buff_set_pin  = ipu_isys_buffer_to_fw_frame_buff_pin;
-	tpg->av.aq.link_fmt_validate        = ipu_isys_link_fmt_validate;
-	tpg->av.aq.vbq.buf_struct_size      = sizeof(struct ipu_isys_video_buffer);
+	tpg->av.isys = isys;
+	tpg->av.aq.css_pin_type = IPU_FW_ISYS_PIN_TYPE_MIPI;
+	tpg->av.pfmts = ipu_isys_pfmts_packed;
+	tpg->av.try_fmt_vid_mplane = ipu_isys_tpg_try_fmt;
+	tpg->av.prepare_fw_stream =
+	    ipu_isys_prepare_fw_cfg_default;
+	tpg->av.packed = true;
+	tpg->av.line_header_length = IPU_ISYS_CSI2_LONG_PACKET_HEADER_SIZE;
+	tpg->av.line_footer_length = IPU_ISYS_CSI2_LONG_PACKET_FOOTER_SIZE;
+	tpg->av.aq.buf_prepare = ipu_isys_buf_prepare;
+	tpg->av.aq.fill_frame_buff_set_pin =
+	    ipu_isys_buffer_to_fw_frame_buff_pin;
+	tpg->av.aq.link_fmt_validate = ipu_isys_link_fmt_validate;
+	tpg->av.aq.vbq.buf_struct_size = sizeof(struct ipu_isys_video_buffer);
 
 	rval = ipu_isys_video_init(&tpg->av, &tpg->asd.sd.entity,
 				   TPG_PAD_SOURCE, MEDIA_PAD_FL_SINK, 0);

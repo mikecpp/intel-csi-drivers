@@ -473,6 +473,7 @@ skip_put_adapter:
 }
 
 // Add by Mike Chen
+/*
 struct max9296_platform_data {
 	unsigned int port;
 	unsigned int lanes;
@@ -506,7 +507,7 @@ static struct ipu_isys_subdev_info max9296_sd = {
 	.csi2 = &max9296_csi2_cfg,
 	.i2c = {
 	    .board_info = {
-		    I2C_BOARD_INFO("i2c:max9296", 0x48),
+		    I2C_BOARD_INFO("max9296", 0x48),
 		    .platform_data = &max9296_pdata,
 	    },
 	    .i2c_adapter_bdf = "0000:00:15.1",
@@ -523,7 +524,7 @@ static struct ipu_isys_subdev_pdata _pdata = {
     },
     .clk_map = clk_mapping,
 };
-
+*/
 // Add end
 
 static void isys_register_ext_subdevs(struct ipu_isys *isys)
@@ -532,7 +533,7 @@ static void isys_register_ext_subdevs(struct ipu_isys *isys)
 	struct ipu_isys_subdev_info **sd_info;
 
     // Add by Mike Chen
-    spdata = &_pdata;
+    // spdata = &_pdata;
     // 
 
 	if (!spdata) {

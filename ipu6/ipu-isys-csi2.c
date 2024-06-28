@@ -84,8 +84,11 @@ static struct v4l2_subdev_internal_ops csi2_sd_internal_ops = {
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 255)
 int ipu_isys_csi2_get_link_freq(struct ipu_isys_csi2 *csi2, s64 *link_freq)
 {
-	struct ipu_isys_pipeline *pipe = container_of(media_entity_pipeline(&csi2->asd.sd.entity), struct ipu_isys_pipeline, pipe);
-	struct v4l2_subdev *ext_sd = media_entity_to_v4l2_subdev(pipe->external->entity);
+	struct ipu_isys_pipeline *pipe =
+		container_of(media_entity_pipeline(&csi2->asd.sd.entity),
+			     struct ipu_isys_pipeline, pipe);
+	struct v4l2_subdev *ext_sd =
+		media_entity_to_v4l2_subdev(pipe->external->entity);
 	struct device *dev = &csi2->isys->adev->dev;
 	unsigned int bpp, lanes;
 	s64 ret;
@@ -104,7 +107,7 @@ int ipu_isys_csi2_get_link_freq(struct ipu_isys_csi2 *csi2, s64 *link_freq)
 		return ret;
 	}
 
-	dev_info(dev, "bpp = %d, lanes =%d, link freq of %s is %lld\n", bpp, lanes, ext_sd->name, ret);
+	dev_dbg(dev, "link freq of %s is %lld\n", ext_sd->name, ret);
 	*link_freq = ret;
 
 	return 0;
@@ -112,9 +115,11 @@ int ipu_isys_csi2_get_link_freq(struct ipu_isys_csi2 *csi2, s64 *link_freq)
 #else
 int ipu_isys_csi2_get_link_freq(struct ipu_isys_csi2 *csi2, __s64 *link_freq)
 {
-	struct ipu_isys_pipeline *pipe = container_of(media_entity_pipeline(&csi2->asd.sd.entity),
+	struct ipu_isys_pipeline *pipe =
+		container_of(media_entity_pipeline(&csi2->asd.sd.entity),
 			     struct ipu_isys_pipeline, pipe);
-	struct v4l2_subdev *ext_sd = media_entity_to_v4l2_subdev(pipe->external->entity);
+	struct v4l2_subdev *ext_sd =
+	    media_entity_to_v4l2_subdev(pipe->external->entity);
 	struct v4l2_ext_control c = {.id = V4L2_CID_LINK_FREQ, };
 	struct v4l2_ext_controls cs = {.count = 1,
 		.controls = &c,
@@ -199,7 +204,7 @@ static const struct v4l2_subdev_core_ops csi2_sd_core_ops = {
  * depending whether the register minimum or maximum value is
  * calculated.
  *				       Minimum     Maximum
- * Clock lane			               A     B     A     B
+ * Clock lane			       A     B     A     B
  * reg_rx_csi_dly_cnt_termen_clane     0     0    38     0
  * reg_rx_csi_dly_cnt_settle_clane    95    -8   300   -16
  * Data lanes
@@ -223,7 +228,9 @@ static uint32_t calc_timing(s32 a, int32_t b, int64_t link_freq, int32_t accinv)
 			     / (int32_t)(link_freq >> DIV_SHIFT));
 }
 
-static int ipu_isys_csi2_calc_timing(struct ipu_isys_csi2 *csi2, struct ipu_isys_csi2_timing *timing, uint32_t accinv)
+static int
+ipu_isys_csi2_calc_timing(struct ipu_isys_csi2 *csi2,
+			  struct ipu_isys_csi2_timing *timing, uint32_t accinv)
 {
 	__s64 link_freq;
 	int rval;
@@ -232,13 +239,21 @@ static int ipu_isys_csi2_calc_timing(struct ipu_isys_csi2 *csi2, struct ipu_isys
 	if (rval)
 		return rval;
 
-	timing->ctermen = calc_timing(CSI2_CSI_RX_DLY_CNT_TERMEN_CLANE_A, CSI2_CSI_RX_DLY_CNT_TERMEN_CLANE_B, link_freq, accinv);
-	timing->csettle = calc_timing(CSI2_CSI_RX_DLY_CNT_SETTLE_CLANE_A, CSI2_CSI_RX_DLY_CNT_SETTLE_CLANE_B, link_freq, accinv);
+	timing->ctermen = calc_timing(CSI2_CSI_RX_DLY_CNT_TERMEN_CLANE_A,
+				      CSI2_CSI_RX_DLY_CNT_TERMEN_CLANE_B,
+				      link_freq, accinv);
+	timing->csettle = calc_timing(CSI2_CSI_RX_DLY_CNT_SETTLE_CLANE_A,
+				      CSI2_CSI_RX_DLY_CNT_SETTLE_CLANE_B,
+				      link_freq, accinv);
 	dev_dbg(&csi2->isys->adev->dev, "ctermen %u\n", timing->ctermen);
 	dev_dbg(&csi2->isys->adev->dev, "csettle %u\n", timing->csettle);
 
-	timing->dtermen = calc_timing(CSI2_CSI_RX_DLY_CNT_TERMEN_DLANE_A, CSI2_CSI_RX_DLY_CNT_TERMEN_DLANE_B, link_freq, accinv);
-	timing->dsettle = calc_timing(CSI2_CSI_RX_DLY_CNT_SETTLE_DLANE_A, CSI2_CSI_RX_DLY_CNT_SETTLE_DLANE_B, link_freq, accinv);
+	timing->dtermen = calc_timing(CSI2_CSI_RX_DLY_CNT_TERMEN_DLANE_A,
+				      CSI2_CSI_RX_DLY_CNT_TERMEN_DLANE_B,
+				      link_freq, accinv);
+	timing->dsettle = calc_timing(CSI2_CSI_RX_DLY_CNT_SETTLE_DLANE_A,
+				      CSI2_CSI_RX_DLY_CNT_SETTLE_DLANE_B,
+				      link_freq, accinv);
 	dev_dbg(&csi2->isys->adev->dev, "dtermen %u\n", timing->dtermen);
 	dev_dbg(&csi2->isys->adev->dev, "dsettle %u\n", timing->dsettle);
 
@@ -285,17 +300,13 @@ static int set_stream(struct v4l2_subdev *sd, int enable)
 
 	nlanes = cfg->nlanes;
 
-	dev_info(&csi2->isys->adev->dev, "lane nr %d.\n", nlanes);
+	dev_dbg(&csi2->isys->adev->dev, "lane nr %d.\n", nlanes);
 
 	rval = ipu_isys_csi2_calc_timing(csi2, &timing, CSI2_ACCINV);
 	if (rval)
 		return rval;
 
 	rval = ipu_isys_csi2_set_stream(sd, timing, nlanes, enable);
-    if (rval) {
-        dev_err(&csi2->isys->adev->dev, "ipu_isys_csi2_set_stream() fail!\n");
-    }
-
 	csi2->stream_count++;
 
 	return rval;
@@ -520,31 +531,37 @@ static void csi_ctrl_init(struct v4l2_subdev *sd)
 						       &cfg, NULL);
 }
 
-int ipu_isys_csi2_init(struct ipu_isys_csi2 *csi2, struct ipu_isys *isys, void __iomem *base, unsigned int index)
+int ipu_isys_csi2_init(struct ipu_isys_csi2 *csi2,
+		       struct ipu_isys *isys,
+		       void __iomem *base, unsigned int index)
 {
 	struct v4l2_subdev_format fmt = {
 		.which = V4L2_SUBDEV_FORMAT_ACTIVE,
 		.pad = CSI2_PAD_SINK,
 		.format = {
-			   .width  = 4096,
+			   .width = 4096,
 			   .height = 3072,
 			  },
 	};
 	int i, rval, src;
 
-	dev_dbg(&isys->adev->dev, "csi-%d base = 0x%lx\n", index, (unsigned long) base);
-	csi2->isys  = isys;
-	csi2->base  = base;
+	dev_dbg(&isys->adev->dev, "csi-%d base = 0x%lx\n", index,
+		(unsigned long)base);
+	csi2->isys = isys;
+	csi2->base = base;
 	csi2->index = index;
 
 	csi2->asd.sd.entity.ops = &csi2_entity_ops;
-	csi2->asd.ctrl_init     = csi_ctrl_init;
-	csi2->asd.isys          = isys;
-
+	csi2->asd.ctrl_init = csi_ctrl_init;
+	csi2->asd.isys = isys;
 	init_completion(&csi2->eof_completion);
-	csi2->stream_count     = 0;
-	rval = ipu_isys_subdev_init(&csi2->asd, &csi2_sd_ops, 0, NR_OF_CSI2_PADS, NR_OF_CSI2_SOURCE_PADS,
-				                NR_OF_CSI2_SINK_PADS, 0, CSI2_PAD_SOURCE, CSI2_PAD_SINK);
+	csi2->stream_count = 0;
+	rval = ipu_isys_subdev_init(&csi2->asd, &csi2_sd_ops, 0,
+				    NR_OF_CSI2_PADS,
+				    NR_OF_CSI2_SOURCE_PADS,
+				    NR_OF_CSI2_SINK_PADS, 0,
+				    CSI2_PAD_SOURCE,
+				    CSI2_PAD_SINK);
 	if (rval)
 		goto fail;
 
@@ -556,12 +573,13 @@ int ipu_isys_csi2_init(struct ipu_isys_csi2 *csi2, struct ipu_isys *isys, void _
 
 	for (i = 0; i < NR_OF_CSI2_SOURCE_PADS; i++)
 		csi2_supported_codes[i + 1] = csi2_supported_codes_pad_source;
-        
 	csi2->asd.supported_codes = csi2_supported_codes;
-	csi2->asd.set_ffmt        = csi2_set_ffmt;
-	csi2->asd.sd.flags       |= V4L2_SUBDEV_FL_HAS_EVENTS;
+	csi2->asd.set_ffmt = csi2_set_ffmt;
+
+	csi2->asd.sd.flags |= V4L2_SUBDEV_FL_HAS_EVENTS;
 	csi2->asd.sd.internal_ops = &csi2_sd_internal_ops;
-	snprintf(csi2->asd.sd.name, sizeof(csi2->asd.sd.name), IPU_ISYS_ENTITY_PREFIX " CSI-2 %u", index);
+	snprintf(csi2->asd.sd.name, sizeof(csi2->asd.sd.name),
+		 IPU_ISYS_ENTITY_PREFIX " CSI-2 %u", index);
 	v4l2_set_subdevdata(&csi2->asd.sd, &csi2->asd);
 
 	rval = v4l2_device_register_subdev(&isys->v4l2_dev, &csi2->asd.sd);
@@ -574,21 +592,31 @@ int ipu_isys_csi2_init(struct ipu_isys_csi2 *csi2, struct ipu_isys *isys, void _
 	__ipu_isys_subdev_set_ffmt(&csi2->asd.sd, NULL, &fmt);
 	mutex_unlock(&csi2->asd.mutex);
 
-	snprintf(csi2->av.vdev.name, sizeof(csi2->av.vdev.name), IPU_ISYS_ENTITY_PREFIX " CSI-2 %u capture", index);
-	csi2->av.isys                       = isys;
-	csi2->av.aq.css_pin_type            = IPU_FW_ISYS_PIN_TYPE_MIPI;
-	csi2->av.pfmts                      = ipu_isys_pfmts_packed;
-	csi2->av.try_fmt_vid_mplane         = csi2_try_fmt;
-	csi2->av.prepare_fw_stream          = ipu_isys_prepare_fw_cfg_default;
-	csi2->av.packed                     = true;
-	csi2->av.line_header_length         = IPU_ISYS_CSI2_LONG_PACKET_HEADER_SIZE;
-	csi2->av.line_footer_length         = IPU_ISYS_CSI2_LONG_PACKET_FOOTER_SIZE;
-	csi2->av.aq.buf_prepare             = ipu_isys_buf_prepare;
-	csi2->av.aq.fill_frame_buff_set_pin = ipu_isys_buffer_to_fw_frame_buff_pin;
-	csi2->av.aq.link_fmt_validate       = ipu_isys_link_fmt_validate;
-	csi2->av.aq.vbq.buf_struct_size     = sizeof(struct ipu_isys_video_buffer);
+	snprintf(csi2->av.vdev.name, sizeof(csi2->av.vdev.name),
+		 IPU_ISYS_ENTITY_PREFIX " CSI-2 %u capture", index);
+	csi2->av.isys = isys;
+	csi2->av.aq.css_pin_type = IPU_FW_ISYS_PIN_TYPE_MIPI;
+	csi2->av.pfmts = ipu_isys_pfmts_packed;
+	csi2->av.try_fmt_vid_mplane = csi2_try_fmt;
+	csi2->av.prepare_fw_stream =
+		ipu_isys_prepare_fw_cfg_default;
+	csi2->av.packed = true;
+	csi2->av.line_header_length =
+		IPU_ISYS_CSI2_LONG_PACKET_HEADER_SIZE;
+	csi2->av.line_footer_length =
+		IPU_ISYS_CSI2_LONG_PACKET_FOOTER_SIZE;
+	csi2->av.aq.buf_prepare = ipu_isys_buf_prepare;
+	csi2->av.aq.fill_frame_buff_set_pin =
+	ipu_isys_buffer_to_fw_frame_buff_pin;
+	csi2->av.aq.link_fmt_validate =
+		ipu_isys_link_fmt_validate;
+	csi2->av.aq.vbq.buf_struct_size =
+		sizeof(struct ipu_isys_video_buffer);
 
-	rval = ipu_isys_video_init(&csi2->av, &csi2->asd.sd.entity, CSI2_PAD_SOURCE, MEDIA_PAD_FL_SINK, 0);
+	rval = ipu_isys_video_init(&csi2->av,
+				   &csi2->asd.sd.entity,
+				   CSI2_PAD_SOURCE,
+				   MEDIA_PAD_FL_SINK, 0);
 	if (rval) {
 		dev_info(&isys->adev->dev, "can't init video node\n");
 		goto fail;

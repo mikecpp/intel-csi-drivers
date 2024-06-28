@@ -63,12 +63,14 @@ static const struct ipu_acpi_devices supported_devices[] = {
 /*
  *	{ "ACPI ID", sensor_name, get_sensor_pdata, NULL, 0, TYPE, serdes_name },	// Custom HID
  */
+    // Modified by Mike Chen
 	{ "INTC10C0", AR0234_NAME, get_sensor_pdata, NULL, 0, TYPE_DIRECT, NULL },	// AR0234 HID
 	{ "INTC10B1", LT6911UXC_NAME, get_sensor_pdata, NULL, 0, TYPE_DIRECT, NULL },	// LT6911UXC HID
 	{ "INTC10C1", IMX390_NAME, get_sensor_pdata, NULL, 0, TYPE_SERDES, TI960_NAME },// IMX390 HID
 	{ "INTC10C5", LT6911UXE_NAME, get_sensor_pdata, NULL, 0, TYPE_DIRECT, NULL },   // LT6911UXE HID
 	{ "INTC10CD", D457_NAME, get_sensor_pdata, NULL, 0, TYPE_SERDES, D457_NAME },// D457 HID
     { "MAX9296", MAX9296_NAME, get_sensor_pdata, NULL, 0, TYPE_DIRECT, NULL },// MAX9296 HID}
+    // 
 };
 
 static int get_table_index(struct device *device, const __u8 *acpi_name)
@@ -94,7 +96,7 @@ static const struct acpi_device_id ipu_acpi_match[] = {
 	{ "INTC10C1", 0 },	// IMX390 HID
 	{ "INTC10C5", 0 },	// LT6911UXE HID
 	{ "INTC10CD", 0 },	// D457 HID
-    { "MAX9296",  0 },
+    { "MAX9296",  0 },  // Add by Mike Chen 
 	{},
 };
 static int ipu_acpi_get_pdata(struct i2c_client *client, const struct acpi_device_id *acpi_id, struct ipu_i2c_helper *helper)

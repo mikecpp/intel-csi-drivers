@@ -1,4 +1,4 @@
-ipu-buttress.o: /home/mike/otocam-drivers/ipu6/ipu6/../ipu-buttress.c \
+ipu-buttress.o: /home/mike/otocam-drivers/ipu6/ipu-buttress.c \
  include/linux/compiler-version.h include/linux/kconfig.h \
  include/generated/autoconf.h include/linux/compiler_types.h \
  include/linux/compiler_attributes.h include/linux/compiler-gcc.h \
@@ -320,11 +320,11 @@ ipu-buttress.o: /home/mike/otocam-drivers/ipu6/ipu6/../ipu-buttress.c \
  include/linux/node.h include/linux/pagemap.h \
  include/linux/hugetlb_inline.h include/uapi/linux/mempolicy.h \
  include/linux/freezer.h include/linux/rtmutex.h include/uapi/linux/i2c.h \
- include/media/v4l2-async.h /home/mike/otocam-drivers/ipu6/ipu6/../ipu.h \
+ include/media/v4l2-async.h /home/mike/otocam-drivers/ipu6/ipu.h \
  include/uapi/linux/media.h include/generated/uapi/linux/version.h \
- /home/mike/otocam-drivers/ipu6/ipu6/../ipu-pdata.h \
- /home/mike/otocam-drivers/ipu6/ipu6/../ipu-bus.h \
- /home/mike/otocam-drivers/ipu6/ipu6/../ipu-buttress.h \
- /home/mike/otocam-drivers/ipu6/ipu6/../ipu-trace.h \
+ /home/mike/otocam-drivers/ipu6/ipu-pdata.h \
+ /home/mike/otocam-drivers/ipu6/ipu-bus.h \
+ /home/mike/otocam-drivers/ipu6/ipu-buttress.h \
+ /home/mike/otocam-drivers/ipu6/ipu-trace.h \
  /home/mike/otocam-drivers/ipu6/ipu6/ipu-platform-buttress-regs.h \
- /home/mike/otocam-drivers/ipu6/ipu6/../ipu-cpd.h
+ /home/mike/otocam-drivers/ipu6/ipu-cpd.h

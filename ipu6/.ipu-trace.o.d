@@ -1,4 +1,4 @@
-ipu-trace.o: /home/mike/otocam-drivers/ipu6/ipu6/../ipu-trace.c \
+ipu-trace.o: /home/mike/otocam-drivers/ipu6/ipu-trace.c \
  include/linux/compiler-version.h include/linux/kconfig.h \
  include/generated/autoconf.h include/linux/compiler_types.h \
  include/linux/compiler_attributes.h include/linux/compiler-gcc.h \
@@ -272,21 +272,20 @@ ipu-trace.o: /home/mike/otocam-drivers/ipu6/ipu6/../ipu-trace.c \
  include/asm-generic/io.h include/linux/logic_pio.h \
  include/linux/fwnode.h include/linux/vmalloc.h \
  arch/x86/include/asm/vmalloc.h arch/x86/include/asm/pgtable_areas.h \
- include/linux/pm_runtime.h /home/mike/otocam-drivers/ipu6/ipu6/../ipu.h \
+ include/linux/pm_runtime.h /home/mike/otocam-drivers/ipu6/ipu.h \
  include/uapi/linux/media.h include/generated/uapi/linux/version.h \
- /home/mike/otocam-drivers/ipu6/ipu6/../ipu-pdata.h \
- /home/mike/otocam-drivers/ipu6/ipu6/../ipu-bus.h \
- include/linux/irqreturn.h include/linux/pci.h \
- include/linux/mod_devicetable.h include/linux/interrupt.h \
- include/linux/hardirq.h include/linux/context_tracking_state.h \
- include/linux/ftrace_irq.h include/linux/vtime.h \
- arch/x86/include/asm/hardirq.h arch/x86/include/asm/irq.h \
- arch/x86/include/asm/irq_vectors.h arch/x86/include/asm/sections.h \
- include/asm-generic/sections.h include/linux/io.h \
- include/linux/resource_ext.h include/linux/msi_api.h \
+ /home/mike/otocam-drivers/ipu6/ipu-pdata.h \
+ /home/mike/otocam-drivers/ipu6/ipu-bus.h include/linux/irqreturn.h \
+ include/linux/pci.h include/linux/mod_devicetable.h \
+ include/linux/interrupt.h include/linux/hardirq.h \
+ include/linux/context_tracking_state.h include/linux/ftrace_irq.h \
+ include/linux/vtime.h arch/x86/include/asm/hardirq.h \
+ arch/x86/include/asm/irq.h arch/x86/include/asm/irq_vectors.h \
+ arch/x86/include/asm/sections.h include/asm-generic/sections.h \
+ include/linux/io.h include/linux/resource_ext.h include/linux/msi_api.h \
  include/uapi/linux/pci.h include/uapi/linux/pci_regs.h \
  include/linux/pci_ids.h include/linux/dmapool.h \
  arch/x86/include/asm/pci.h arch/x86/include/asm/memtype.h \
- /home/mike/otocam-drivers/ipu6/ipu6/../ipu-buttress.h \
- /home/mike/otocam-drivers/ipu6/ipu6/../ipu-trace.h \
+ /home/mike/otocam-drivers/ipu6/ipu-buttress.h \
+ /home/mike/otocam-drivers/ipu6/ipu-trace.h \
  /home/mike/otocam-drivers/ipu6/ipu6/ipu-platform-regs.h

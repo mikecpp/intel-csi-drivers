@@ -1,4 +1,4 @@
-ipu-bus.o: /home/mike/otocam-drivers/ipu6/ipu6/../ipu-bus.c \
+ipu-bus.o: /home/mike/otocam-drivers/ipu6/ipu-bus.c \
  include/linux/compiler-version.h include/linux/kconfig.h \
  include/generated/autoconf.h include/linux/compiler_types.h \
  include/linux/compiler_attributes.h include/linux/compiler-gcc.h \
@@ -278,13 +278,12 @@ ipu-bus.o: /home/mike/otocam-drivers/ipu6/ipu6/../ipu-bus.c \
  include/linux/vmstat.h include/linux/vm_event_item.h \
  arch/x86/include/asm/pci.h arch/x86/include/asm/memtype.h \
  include/linux/dma-mapping.h include/linux/dma-direction.h \
- include/linux/pm_runtime.h /home/mike/otocam-drivers/ipu6/ipu6/../ipu.h \
+ include/linux/pm_runtime.h /home/mike/otocam-drivers/ipu6/ipu.h \
  include/uapi/linux/media.h include/generated/uapi/linux/version.h \
- /home/mike/otocam-drivers/ipu6/ipu6/../ipu-pdata.h \
- /home/mike/otocam-drivers/ipu6/ipu6/../ipu-bus.h \
- /home/mike/otocam-drivers/ipu6/ipu6/../ipu-buttress.h \
- /home/mike/otocam-drivers/ipu6/ipu6/../ipu-trace.h \
- include/linux/debugfs.h include/linux/seq_file.h \
- include/linux/string_helpers.h include/linux/ctype.h \
- /home/mike/otocam-drivers/ipu6/ipu6/ipu-platform.h \
- /home/mike/otocam-drivers/ipu6/ipu6/../ipu-dma.h include/linux/iova.h
+ /home/mike/otocam-drivers/ipu6/ipu-pdata.h \
+ /home/mike/otocam-drivers/ipu6/ipu-bus.h \
+ /home/mike/otocam-drivers/ipu6/ipu-buttress.h \
+ /home/mike/otocam-drivers/ipu6/ipu-trace.h include/linux/debugfs.h \
+ include/linux/seq_file.h include/linux/string_helpers.h \
+ include/linux/ctype.h /home/mike/otocam-drivers/ipu6/ipu6/ipu-platform.h \
+ /home/mike/otocam-drivers/ipu6/ipu-dma.h include/linux/iova.h

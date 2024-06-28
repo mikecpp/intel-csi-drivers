@@ -284,10 +284,10 @@ int ipu_isys_csi2_be_soc_init(struct ipu_isys_csi2_be_soc *csi2_be_soc,
 			      struct ipu_isys *isys, int index)
 {
 	struct v4l2_subdev_format fmt = {
-		.which  = V4L2_SUBDEV_FORMAT_ACTIVE,
-		.pad    = CSI2_BE_SOC_PAD_SINK,
+		.which = V4L2_SUBDEV_FORMAT_ACTIVE,
+		.pad = CSI2_BE_SOC_PAD_SINK,
 		.format = {
-			   .width  = 4096,
+			   .width = 4096,
 			   .height = 3072,
 			   },
 	};
@@ -306,7 +306,9 @@ int ipu_isys_csi2_be_soc_init(struct ipu_isys_csi2_be_soc *csi2_be_soc,
 	if (rval)
 		goto fail;
 
-	for (i = CSI2_BE_SOC_PAD_SOURCE(0); i < NR_OF_CSI2_BE_SOC_SOURCE_PADS + CSI2_BE_SOC_PAD_SOURCE(0); i++) {
+	for (i = CSI2_BE_SOC_PAD_SOURCE(0);
+	     i < NR_OF_CSI2_BE_SOC_SOURCE_PADS + CSI2_BE_SOC_PAD_SOURCE(0);
+	     i++) {
 		csi2_be_soc->asd.valid_tgts[i].crop = true;
 	}
 
@@ -314,9 +316,9 @@ int ipu_isys_csi2_be_soc_init(struct ipu_isys_csi2_be_soc *csi2_be_soc,
 		csi2_be_soc_supported_codes[i] =
 			csi2_be_soc_supported_codes_pad;
 	csi2_be_soc->asd.supported_codes = csi2_be_soc_supported_codes;
-	csi2_be_soc->asd.be_mode         = IPU_BE_SOC;
-	csi2_be_soc->asd.isl_mode        = IPU_ISL_OFF;
-	csi2_be_soc->asd.set_ffmt        = csi2_be_soc_set_ffmt;
+	csi2_be_soc->asd.be_mode = IPU_BE_SOC;
+	csi2_be_soc->asd.isl_mode = IPU_ISL_OFF;
+	csi2_be_soc->asd.set_ffmt = csi2_be_soc_set_ffmt;
 
 	fmt.pad = CSI2_BE_SOC_PAD_SINK;
 	ipu_isys_subdev_set_ffmt(&csi2_be_soc->asd.sd, NULL, &fmt);
@@ -335,41 +337,60 @@ int ipu_isys_csi2_be_soc_init(struct ipu_isys_csi2_be_soc *csi2_be_soc,
 
 	for (i = 0; i < vnode_num; i++) {
 		if (!index)
-			snprintf(csi2_be_soc->av[i].vdev.name, sizeof(csi2_be_soc->av[i].vdev.name), IPU_ISYS_ENTITY_PREFIX " BE SOC capture %d", i);
+			snprintf(csi2_be_soc->av[i].vdev.name,
+				 sizeof(csi2_be_soc->av[i].vdev.name),
+				 IPU_ISYS_ENTITY_PREFIX " BE SOC capture %d", i);
 		else
-			snprintf(csi2_be_soc->av[i].vdev.name, sizeof(csi2_be_soc->av[i].vdev.name), IPU_ISYS_ENTITY_PREFIX " BE SOC %d capture %d", index, i);
+			snprintf(csi2_be_soc->av[i].vdev.name,
+				 sizeof(csi2_be_soc->av[i].vdev.name),
+				 IPU_ISYS_ENTITY_PREFIX " BE SOC %d capture %d", index, i);
 		/*
 		 * Pin type could be overwritten for YUV422 to I420 case, at
 		 * set_format phase
 		 */
-		csi2_be_soc->av[i].aq.css_pin_type            = IPU_FW_ISYS_PIN_TYPE_RAW_SOC;
-		csi2_be_soc->av[i].isys                       = isys;
-		csi2_be_soc->av[i].pfmts                      = ipu_isys_pfmts_be_soc;
+		csi2_be_soc->av[i].aq.css_pin_type =
+		    IPU_FW_ISYS_PIN_TYPE_RAW_SOC;
+		csi2_be_soc->av[i].isys = isys;
+		csi2_be_soc->av[i].pfmts = ipu_isys_pfmts_be_soc;
 
-		csi2_be_soc->av[i].try_fmt_vid_mplane         = ipu_isys_video_try_fmt_vid_mplane_default;
-		csi2_be_soc->av[i].prepare_fw_stream          = ipu_isys_prepare_fw_cfg_default;
-		csi2_be_soc->av[i].aq.buf_prepare             = ipu_isys_buf_prepare;
-		csi2_be_soc->av[i].aq.fill_frame_buff_set_pin = ipu_isys_buffer_to_fw_frame_buff_pin;
-		csi2_be_soc->av[i].aq.link_fmt_validate       = ipu_isys_link_fmt_validate;
-		csi2_be_soc->av[i].aq.vbq.buf_struct_size     = sizeof(struct ipu_isys_video_buffer);
+		csi2_be_soc->av[i].try_fmt_vid_mplane =
+		    ipu_isys_video_try_fmt_vid_mplane_default;
+		csi2_be_soc->av[i].prepare_fw_stream =
+		    ipu_isys_prepare_fw_cfg_default;
+		csi2_be_soc->av[i].aq.buf_prepare = ipu_isys_buf_prepare;
+		csi2_be_soc->av[i].aq.fill_frame_buff_set_pin =
+		    ipu_isys_buffer_to_fw_frame_buff_pin;
+		csi2_be_soc->av[i].aq.link_fmt_validate =
+		    ipu_isys_link_fmt_validate;
+		csi2_be_soc->av[i].aq.vbq.buf_struct_size =
+		    sizeof(struct ipu_isys_video_buffer);
 
 		/* create v4l2 ctrl for be-soc video node */
-		rval = v4l2_ctrl_handler_init(&csi2_be_soc->av[i].ctrl_handler, 0);
+		rval =
+		  v4l2_ctrl_handler_init(&csi2_be_soc->av[i].ctrl_handler, 0);
 		if (rval) {
-			dev_err(&isys->adev->dev, "failed to init v4l2 ctrl hdl for be_soc\n");
+			dev_err(&isys->adev->dev,
+				"failed to init v4l2 ctrl hdl for be_soc\n");
 			goto fail;
 		}
 
-		csi2_be_soc->av[i].compression_ctrl = v4l2_ctrl_new_custom(&csi2_be_soc->av[i].ctrl_handler, &compression_ctrl_cfg, NULL);
+		csi2_be_soc->av[i].compression_ctrl =
+			v4l2_ctrl_new_custom(&csi2_be_soc->av[i].ctrl_handler,
+					     &compression_ctrl_cfg, NULL);
 		if (!csi2_be_soc->av[i].compression_ctrl) {
-			dev_err(&isys->adev->dev, "failed to create BE-SOC cmprs ctrl\n");
+			dev_err(&isys->adev->dev,
+				"failed to create BE-SOC cmprs ctrl\n");
 			goto fail;
 		}
-		csi2_be_soc->av[i].compression       = 0;
-		csi2_be_soc->av[i].vdev.ctrl_handler = &csi2_be_soc->av[i].ctrl_handler;
+		csi2_be_soc->av[i].compression = 0;
+		csi2_be_soc->av[i].vdev.ctrl_handler =
+			&csi2_be_soc->av[i].ctrl_handler;
 
-		rval = ipu_isys_video_init(&csi2_be_soc->av[i],  &csi2_be_soc->asd.sd.entity,  CSI2_BE_SOC_PAD_SOURCE(i),
-					               MEDIA_PAD_FL_SINK, MEDIA_LNK_FL_DYNAMIC);
+		rval = ipu_isys_video_init(&csi2_be_soc->av[i],
+					   &csi2_be_soc->asd.sd.entity,
+					   CSI2_BE_SOC_PAD_SOURCE(i),
+					   MEDIA_PAD_FL_SINK,
+					   MEDIA_LNK_FL_DYNAMIC);
 		if (rval) {
 			dev_info(&isys->adev->dev, "can't init video node\n");
 			goto fail;

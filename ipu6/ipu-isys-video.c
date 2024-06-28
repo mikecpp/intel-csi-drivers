@@ -424,10 +424,11 @@ int ipu_isys_vidioc_enum_fmt(struct file *file, void *fh,
 	return 0;
 }
 
-static int vidioc_g_fmt_vid_cap_mplane(struct file *file, void *fh, struct v4l2_format *fmt)
+static int vidioc_g_fmt_vid_cap_mplane(struct file *file, void *fh,
+				       struct v4l2_format *fmt)
 {
 	struct ipu_isys_video *av = video_drvdata(file);
-/*
+
 	if (fmt->type == V4L2_BUF_TYPE_META_CAPTURE) {
 		fmt->fmt.meta.buffersize = av->mpix.plane_fmt[0].sizeimage;
 		fmt->fmt.meta.bytesperline = av->mpix.plane_fmt[0].bytesperline;
@@ -437,7 +438,7 @@ static int vidioc_g_fmt_vid_cap_mplane(struct file *file, void *fh, struct v4l2_
 
 		return 0;
 	}
-*/
+
 	fmt->fmt.pix_mp = av->mpix;
 
 	return 0;
@@ -571,23 +572,19 @@ static int vidioc_s_fmt_vid_cap_mplane(struct file *file, void *fh,
 	if (f->type == V4L2_BUF_TYPE_META_CAPTURE) {
 		memset(&av->mpix, 0, sizeof(av->mpix));
 		memset(&mpix, 0, sizeof(mpix));
-        /*
 		mpix.width = f->fmt.meta.width;
 		mpix.height = f->fmt.meta.height;
 		mpix.pixelformat = f->fmt.meta.dataformat;
-        */
 		av->pfmt = av->try_fmt_vid_mplane(av, &mpix);
 		av->aq.vbq.type = V4L2_BUF_TYPE_META_CAPTURE;
 		av->aq.vbq.is_multiplanar = false;
 		av->aq.vbq.is_output = false;
 		av->mpix = mpix;
-        /*
 		f->fmt.meta.width = mpix.width;
 		f->fmt.meta.height = mpix.height;
 		f->fmt.meta.dataformat = mpix.pixelformat;
 		f->fmt.meta.bytesperline = mpix.plane_fmt[0].bytesperline;
 		f->fmt.meta.buffersize = mpix.plane_fmt[0].sizeimage;
-        */
 		return 0;
 	}
 	av->pfmt = av->try_fmt_vid_mplane(av, &f->fmt.pix_mp);
@@ -673,9 +670,11 @@ static bool is_external(struct ipu_isys_video *av, struct media_entity *entity)
 
 static int link_validate(struct media_link *link)
 {
-	struct ipu_isys_video *av =	container_of(link->sink, struct ipu_isys_video, pad);
+	struct ipu_isys_video *av =
+		container_of(link->sink, struct ipu_isys_video, pad);
 	/* All sub-devices connected to a video node are ours. */
-	struct ipu_isys_pipeline *ip = to_ipu_isys_pipeline(media_entity_pipeline(&av->vdev.entity));
+	struct ipu_isys_pipeline *ip =
+		to_ipu_isys_pipeline(media_entity_pipeline(&av->vdev.entity));
 	struct v4l2_subdev *sd;
 
 	WARN_ON(!ip);
@@ -741,7 +740,8 @@ static int get_stream_handle(struct ipu_isys_video *av)
 
 static void put_stream_handle(struct ipu_isys_video *av)
 {
-	struct ipu_isys_pipeline *ip = to_ipu_isys_pipeline(media_entity_pipeline(&av->vdev.entity));
+	struct ipu_isys_pipeline *ip =
+		to_ipu_isys_pipeline(media_entity_pipeline(&av->vdev.entity));
 	unsigned long flags;
 
 	spin_lock_irqsave(&av->isys->lock, flags);
@@ -751,7 +751,7 @@ static void put_stream_handle(struct ipu_isys_video *av)
 }
 
 static int get_external_facing_format(struct ipu_isys_pipeline *ip,
-				                      struct v4l2_subdev_format *format)
+				      struct v4l2_subdev_format *format)
 {
 	struct ipu_isys_video *av = container_of(ip, struct ipu_isys_video, ip);
 	struct v4l2_subdev *sd;
@@ -954,7 +954,7 @@ csi_short_packet_prepare_fw_cfg(struct ipu_isys_pipeline *ip,
 
 #define MEDIA_ENTITY_MAX_PADS		512
 
-static bool is_support_vc(struct media_pad *source_pad,
+bool is_support_vc(struct media_pad *source_pad,
 			  struct ipu_isys_pipeline *ip)
 {
 	struct media_pad *remote_pad = source_pad;
@@ -1015,6 +1015,17 @@ static bool is_support_vc(struct media_pad *source_pad,
 	}
 
 	return true;
+}
+
+bool is_has_metadata(const struct ipu_isys_pipeline *ip)
+{
+	int i = 0;
+
+	for (i = 0; i < CSI2_BE_SOC_SOURCE_PADS_NUM; i++) {
+		if (ip->asv[i].dt == IPU_ISYS_MIPI_CSI2_TYPE_EMBEDDED8)
+			return true;
+	}
+	return false;
 }
 
 static int ipu_isys_query_sensor_info(struct media_pad *source_pad,
@@ -1334,8 +1345,16 @@ static void media_pipeline_stop_for_vc(struct ipu_isys_video *av)
 		return;
 
 	media_graph_walk_start(&graph, entity);
-	while ((entity = media_graph_walk_next(&graph)))
-		entity->pads[0].pipe = NULL;
+	dev_dbg(av->vdev.entity.graph_obj.mdev->dev,
+			"stream count: %u, av entity name: %s.\n",
+			av->ip.csi2->stream_count, av->vdev.entity.name);
+	while ((entity = media_graph_walk_next(&graph))) {
+		dev_dbg(av->vdev.entity.graph_obj.mdev->dev,
+				"walk entity name: %s.\n",
+				entity->name);
+		if (av->ip.csi2->stream_count == 0 || !strcmp(entity->name, av->vdev.entity.name))
+			entity->pads[0].pipe = NULL;
+	}
 
 	media_graph_walk_cleanup(&graph);
 }
@@ -1739,9 +1758,11 @@ static unsigned int get_comp_format(u32 code)
 }
 
 /* Create stream and start it using the CSS FW ABI. */
-static int start_stream_firmware(struct ipu_isys_video *av, struct ipu_isys_buffer_list *bl)
+static int start_stream_firmware(struct ipu_isys_video *av,
+				 struct ipu_isys_buffer_list *bl)
 {
-	struct ipu_isys_pipeline *ip = to_ipu_isys_pipeline(media_entity_pipeline(&av->vdev.entity));
+	struct ipu_isys_pipeline *ip =
+		to_ipu_isys_pipeline(media_entity_pipeline(&av->vdev.entity));
 	struct device *dev = &av->isys->adev->dev;
 	struct v4l2_subdev_selection sel_fmt = {
 		.which = V4L2_SUBDEV_FORMAT_ACTIVE,
@@ -1851,8 +1872,12 @@ static int start_stream_firmware(struct ipu_isys_video *av, struct ipu_isys_buff
 
 	ipu_fw_isys_dump_stream_cfg(dev, stream_cfg);
 
-	rval = ipu_fw_isys_complex_cmd(av->isys, ip->stream_handle, stream_cfg, to_dma_addr(msg),
-				                   sizeof(*stream_cfg), IPU_FW_ISYS_SEND_TYPE_STREAM_OPEN);
+	rval = ipu_fw_isys_complex_cmd(av->isys,
+				       ip->stream_handle,
+				       stream_cfg,
+				       to_dma_addr(msg),
+				       sizeof(*stream_cfg),
+				       IPU_FW_ISYS_SEND_TYPE_STREAM_OPEN);
 	if (rval < 0) {
 		dev_err(dev, "can't open stream (%d)\n", rval);
 		ipu_put_fw_mgs_buf(av->isys, (uintptr_t)stream_cfg);
@@ -1861,7 +1886,8 @@ static int start_stream_firmware(struct ipu_isys_video *av, struct ipu_isys_buff
 
 	get_stream_opened(av);
 
-	tout = wait_for_completion_timeout(&ip->stream_open_completion, IPU_LIB_CALL_TIMEOUT_JIFFIES);
+	tout = wait_for_completion_timeout(&ip->stream_open_completion,
+					   IPU_LIB_CALL_TIMEOUT_JIFFIES);
 
 	ipu_put_fw_mgs_buf(av->isys, (uintptr_t)stream_cfg);
 
@@ -1894,18 +1920,24 @@ static int start_stream_firmware(struct ipu_isys_video *av, struct ipu_isys_buff
 
 	reinit_completion(&ip->stream_start_completion);
 
-	if (bl && !av->isys->in_reset) {
+	if (bl && (is_support_vc(source_pad, ip))) {
 		dev_dbg(dev, "start stream: start and capture\n");
 
 		send_type = IPU_FW_ISYS_SEND_TYPE_STREAM_START_AND_CAPTURE;
-		ipu_fw_isys_dump_frame_buff_set(dev, buf, stream_cfg->nof_output_pins);
-		rval = ipu_fw_isys_complex_cmd(av->isys, ip->stream_handle, buf, to_dma_addr(msg),
-					                   sizeof(*buf), send_type);
+		ipu_fw_isys_dump_frame_buff_set(dev, buf,
+						stream_cfg->nof_output_pins);
+		rval = ipu_fw_isys_complex_cmd(av->isys,
+					       ip->stream_handle,
+					       buf, to_dma_addr(msg),
+					       sizeof(*buf),
+					       send_type);
 	} else {
 		dev_dbg(dev, "start stream: start\n");
 
 		send_type = IPU_FW_ISYS_SEND_TYPE_STREAM_START;
-		rval = ipu_fw_isys_simple_cmd(av->isys, ip->stream_handle, send_type);
+		rval = ipu_fw_isys_simple_cmd(av->isys,
+					      ip->stream_handle,
+					      send_type);
 	}
 
 	if (rval < 0) {
@@ -1925,14 +1957,14 @@ static int start_stream_firmware(struct ipu_isys_video *av, struct ipu_isys_buff
 		rval = -EIO;
 		goto out_stream_close;
 	}
-	if (av->isys->in_reset) {
+	if (!is_support_vc(source_pad, ip)) {
 		if (bl) {
 			dev_dbg(dev, "start stream: capture\n");
 
 			ipu_fw_isys_dump_frame_buff_set(dev, buf, stream_cfg->nof_output_pins);
 			rval = ipu_fw_isys_complex_cmd(av->isys, ip->stream_handle, buf,
-				                           to_dma_addr(msg), sizeof(*buf),
-				                           IPU_FW_ISYS_SEND_TYPE_STREAM_CAPTURE);
+				to_dma_addr(msg), sizeof(*buf),
+				IPU_FW_ISYS_SEND_TYPE_STREAM_CAPTURE);
 
 			if (rval < 0) {
 				dev_err(dev, "can't queue buffers (%d)\n", rval);
@@ -1973,21 +2005,25 @@ out_put_stream_handle:
 
 static void stop_streaming_firmware(struct ipu_isys_video *av)
 {
-	struct ipu_isys_pipeline *ip = to_ipu_isys_pipeline(media_entity_pipeline(&av->vdev.entity));
+	struct ipu_isys_pipeline *ip =
+		to_ipu_isys_pipeline(media_entity_pipeline(&av->vdev.entity));
 	struct device *dev = &av->isys->adev->dev;
 	int rval, tout;
-	enum ipu_fw_isys_send_type send_type = IPU_FW_ISYS_SEND_TYPE_STREAM_FLUSH;
+	enum ipu_fw_isys_send_type send_type =
+		IPU_FW_ISYS_SEND_TYPE_STREAM_FLUSH;
 
 	reinit_completion(&ip->stream_stop_completion);
 
-	rval = ipu_fw_isys_simple_cmd(av->isys, ip->stream_handle, send_type);
+	rval = ipu_fw_isys_simple_cmd(av->isys, ip->stream_handle,
+				      send_type);
 
 	if (rval < 0) {
 		dev_err(dev, "can't stop stream (%d)\n", rval);
 		return;
 	}
 
-	tout = wait_for_completion_timeout(&ip->stream_stop_completion, IPU_LIB_CALL_TIMEOUT_JIFFIES_RESET);
+	tout = wait_for_completion_timeout(&ip->stream_stop_completion,
+					   IPU_LIB_CALL_TIMEOUT_JIFFIES_RESET);
 	if (!tout)
 		dev_err(dev, "stream stop time out\n");
 	else if (ip->error)
@@ -2173,7 +2209,9 @@ out_enum_cleanup:
 	return rval;
 }
 
-int ipu_isys_video_set_streaming(struct ipu_isys_video *av, unsigned int state, struct ipu_isys_buffer_list *bl)
+int ipu_isys_video_set_streaming(struct ipu_isys_video *av,
+				 unsigned int state,
+				 struct ipu_isys_buffer_list *bl)
 {
 	struct device *dev = &av->isys->adev->dev;
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0)
@@ -2185,14 +2223,16 @@ int ipu_isys_video_set_streaming(struct ipu_isys_video *av, unsigned int state, 
 	struct media_entity_enum entities;
 
 	struct media_entity *entity, *entity2;
-	struct ipu_isys_pipeline *ip = to_ipu_isys_pipeline(media_entity_pipeline(&av->vdev.entity));
+	struct ipu_isys_pipeline *ip =
+		to_ipu_isys_pipeline(media_entity_pipeline(&av->vdev.entity));
 	struct v4l2_subdev *sd, *esd;
 	int rval = 0;
 	struct v4l2_ext_control c = {.id = V4L2_CID_IPU_SET_SUB_STREAM, };
 	struct v4l2_ext_controls cs = {.count = 1,
 		.controls = &c,
 	};
-	struct v4l2_query_ext_ctrl qm_ctrl = { .id = V4L2_CID_IPU_SET_SUB_STREAM, };
+	struct v4l2_query_ext_ctrl qm_ctrl = {
+		.id = V4L2_CID_IPU_SET_SUB_STREAM, };
 
 	dev_dbg(dev, "set stream: %d\n", state);
 
@@ -2281,7 +2321,8 @@ int ipu_isys_video_set_streaming(struct ipu_isys_video *av, unsigned int state, 
 		if (rval)
 			goto out_media_entity_stop_streaming;
 
-		dev_dbg(dev, "set stream: source %d, stream_handle %d\n", ip->source, ip->stream_handle);
+		dev_dbg(dev, "set stream: source %d, stream_handle %d\n",
+			ip->source, ip->stream_handle);
 
 		/* Start external sub-device now. */
 		dev_info(dev, "stream on %s\n", ip->external->entity->name);
@@ -2289,9 +2330,14 @@ int ipu_isys_video_set_streaming(struct ipu_isys_video *av, unsigned int state, 
 		if (!v4l2_query_ext_ctrl(esd->ctrl_handler, &qm_ctrl)) {
 			c.value64 = SUB_STREAM_SET_VALUE(ip->vc, state);
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
-			rval = v4l2_s_ext_ctrls(NULL, esd->ctrl_handler, esd->devnode, esd->v4l2_dev->mdev, &cs);
+			rval = v4l2_s_ext_ctrls(NULL, esd->ctrl_handler,
+						esd->devnode,
+						esd->v4l2_dev->mdev,
+						&cs);
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(4, 20, 0)
-			rval = v4l2_s_ext_ctrls(NULL, esd->ctrl_handler, esd->v4l2_dev->mdev, &cs);
+			rval = v4l2_s_ext_ctrls(NULL, esd->ctrl_handler,
+						esd->v4l2_dev->mdev,
+						&cs);
 #endif
 		} else {
 			rval = v4l2_subdev_call(esd, video, s_stream, state);
@@ -2416,8 +2462,10 @@ static const struct v4l2_file_operations isys_fops = {
  * is expected to assign isys field and set the name of the video
  * device.
  */
-int ipu_isys_video_init(struct ipu_isys_video *av, struct media_entity *entity,	unsigned int pad, 
-                        unsigned long pad_flags, unsigned int flags)
+int ipu_isys_video_init(struct ipu_isys_video *av,
+			struct media_entity *entity,
+			unsigned int pad, unsigned long pad_flags,
+			unsigned int flags)
 {
 	static atomic_t video_dev_count = ATOMIC_INIT(0);
 	const struct v4l2_ioctl_ops *ioctl_ops = NULL;
@@ -2434,7 +2482,8 @@ int ipu_isys_video_init(struct ipu_isys_video *av, struct media_entity *entity,	
 	av->ip.isys = av->isys;
 	av->ip.vc = INVALIA_VC_ID;
 	for (i = 0; i < NR_OF_CSI2_BE_SOC_SOURCE_PADS; i++) {
-		memset(&av->ip.asv[i], 0, sizeof(struct ipu_isys_sub_stream_vc));
+		memset(&av->ip.asv[i], 0,
+		       sizeof(struct ipu_isys_sub_stream_vc));
 		av->ip.asv[i].vc = INVALIA_VC_ID;
 	}
 	av->reset = false;
@@ -2461,14 +2510,14 @@ int ipu_isys_video_init(struct ipu_isys_video *av, struct media_entity *entity,	
 	if (rval)
 		goto out_ipu_isys_queue_cleanup;
 
-	av->vdev.entity.ops     = &entity_ops;
-	av->vdev.release        = video_device_release_empty;
-	av->vdev.fops           = &isys_fops;
-	av->vdev.v4l2_dev       = &av->isys->v4l2_dev;
+	av->vdev.entity.ops = &entity_ops;
+	av->vdev.release = video_device_release_empty;
+	av->vdev.fops = &isys_fops;
+	av->vdev.v4l2_dev = &av->isys->v4l2_dev;
 	if (!av->vdev.ioctl_ops)
 		av->vdev.ioctl_ops = ioctl_ops;
 	av->vdev.queue = &av->aq.vbq;
-	av->vdev.lock  = &av->mutex;
+	av->vdev.lock = &av->mutex;
 	set_bit(V4L2_FL_USES_V4L2_FH, &av->vdev.flags);
 	video_set_drvdata(&av->vdev, av);
 

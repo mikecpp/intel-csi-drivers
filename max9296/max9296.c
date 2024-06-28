@@ -2,6 +2,7 @@
 #include <linux/clk.h>
 #include <linux/delay.h>
 #include <linux/gpio/consumer.h>
+#include <linux/regmap.h>
 #include <linux/i2c.h>
 #include <linux/module.h>
 #include <linux/pm_runtime.h>
@@ -14,7 +15,7 @@
 #include <media/v4l2-ioctl.h>
 #include <media/v4l2-async.h>
 
-#define DEVICE_NAME_MAX9296             "i2c:max9296" 
+#define DEVICE_NAME_MAX9296             "i2c" 
 #define DEVICE_ADDR_MAX9296             0x48
 #define DEVICE_ADDR_MAX9295             0x62
 
@@ -167,7 +168,6 @@ static void registers_setup(struct max9296 *sensor)
 
 static int max9296_set_stream(struct v4l2_subdev *sd, int enable)
 {
-    // int ret;
     struct max9296 *sensor = to_max9296(sd);
 
     mutex_lock(&sensor->mutex);
@@ -348,7 +348,6 @@ static int max9296_probe(struct i2c_client *client)
 {
     int ret = 0;
     struct max9296 *sensor;
-    dev_t  *dev_num = &client->dev.devt;
 
     // _client = client;
 	sensor = devm_kzalloc(&client->dev, sizeof(*sensor), GFP_KERNEL);
@@ -359,20 +358,17 @@ static int max9296_probe(struct i2c_client *client)
     v4l2_set_subdevdata(&sensor->sd, sensor);
 
     // Initial max9296/max9295 registers 
-    registers_setup(sensor);
+    // registers_setup(sensor);
 
     // Initial subdev
     v4l2_i2c_subdev_init(&sensor->sd, sensor->client, &max9296_subdev_ops);
 
-    sensor->sd.owner           = NULL;
 	sensor->sd.internal_ops    = &max9296_internal_ops;
-    sensor->sd.grp_id          = *dev_num;
 	sensor->sd.flags          |= V4L2_SUBDEV_FL_HAS_DEVNODE;
     sensor->sd.entity.ops      = &max9296_subdev_entity_ops;
-    sensor->sd.entity.obj_type = MEDIA_ENTITY_TYPE_V4L2_SUBDEV;
 	sensor->sd.entity.function = MEDIA_ENT_F_CAM_SENSOR;
-
-	sensor->pad.flags          = MEDIA_PAD_FL_SOURCE;
+    
+    sensor->pad.flags          = MEDIA_PAD_FL_SOURCE;
 
     ret = media_entity_pads_init(&sensor->sd.entity, 1, &sensor->pad); 
     if (ret < 0) {
@@ -399,23 +395,32 @@ static void max9296_remove(struct i2c_client *client)
 {
 	struct v4l2_subdev *sd = i2c_get_clientdata(client);
 
-    v4l2_async_unregister_subdev(sd);
+	v4l2_device_unregister_subdev(sd);
 	media_entity_cleanup(&sd->entity);
+
     pr_info("max9296_remove() OK!\n");    
 }
 
+static const struct acpi_device_id max9296_acpi_ids[] = {
+	{"MAX9296"},
+	{ }
+};
+
+MODULE_DEVICE_TABLE(acpi, max9296_acpi_ids);
+
 static const struct i2c_device_id max9296_id[] = {
-	{DEVICE_NAME_MAX9296, 0},
+	{"max9296", 0},
 	{ }
 };
 
 static struct i2c_driver max9296_driver = {
 	.driver = {
-		.name  = DEVICE_NAME_MAX9296,
-        .owner = THIS_MODULE,
+		.name  = "max9296",
+		.acpi_match_table = ACPI_PTR(max9296_acpi_ids),        
 	},
 	.probe_new = max9296_probe,
 	.remove    = max9296_remove,
+	.flags     = I2C_DRV_ACPI_WAIVE_D0_PROBE,    
     .id_table  = max9296_id,    
 };
 
