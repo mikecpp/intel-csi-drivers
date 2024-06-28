@@ -16,7 +16,6 @@
 #include <media/v4l2-async.h>
 
 #define DEVICE_NAME_MAX9296             "i2c" 
-#define DEVICE_ADDR_MAX9296             0x48
 #define DEVICE_ADDR_MAX9295             0x62
 
 #define MAX9296_LINK_FREQ               750000000ULL 
@@ -42,6 +41,7 @@ struct max9296 {
     struct v4l2_device       v4l2_dev;
     struct media_device      media_dev;
     struct i2c_client        *client;         
+    uint16_t                 i2c_addr;
 
     // V4L2 Controls
 	struct v4l2_ctrl        *link_freq;
@@ -68,7 +68,7 @@ static int max9296_write(struct max9296 *sensor, uint16_t reg, uint8_t val)
     data[1] = (reg & 0x00FF); 
     data[2] = val;
 
-    client->addr = DEVICE_ADDR_MAX9296;
+    client->addr = sensor->i2c_addr; 
     ret = i2c_master_send(client, data, 3);
 	if (ret < 0) {
 		pr_err("%s(): i2c write failed %d, 0x%04x = 0x%x\n", __func__, ret, reg, val);
@@ -96,7 +96,7 @@ static int max9295_write(struct max9296 *sensor, uint16_t reg, uint8_t val)
 		pr_err("%s(): i2c write failed %d, 0x%04x = 0x%x\n", __func__, ret, reg, val);
         return -1;
     }   
-    client->addr = DEVICE_ADDR_MAX9296;
+    client->addr = sensor->i2c_addr; 
     // pr_info("max9295_write: %04x %02x\n", reg, val); 
 
     return 0;
@@ -354,7 +354,8 @@ static int max9296_probe(struct i2c_client *client)
 	if (!sensor)
 		return -ENOMEM;
 
-    sensor->client = client;
+    sensor->client   = client;
+    sensor->i2c_addr = client->addr;
     v4l2_set_subdevdata(&sensor->sd, sensor);
 
     // Initial max9296/max9295 registers 
