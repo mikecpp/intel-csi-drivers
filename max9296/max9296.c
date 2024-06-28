@@ -15,7 +15,7 @@
 #include <media/v4l2-ioctl.h>
 #include <media/v4l2-async.h>
 
-#define DEVICE_NAME_MAX9296             "i2c" 
+#define DEVICE_NAME_MAX9296             "max9296" 
 #define DEVICE_ADDR_MAX9295             0x62
 
 #define MAX9296_LINK_FREQ               750000000ULL 
@@ -52,13 +52,11 @@ struct max9296 {
 
     // Mutex 
 	struct mutex             mutex;
-
-	bool streaming;    
 };
 
 #define to_max9296(_sd)	container_of(_sd, struct max9296, sd)
 
-static int max9296_write(struct max9296 *sensor, uint16_t reg, uint8_t val)
+static int serdes_write(struct max9296 *sensor, uint16_t addr, uint16_t reg, uint8_t val)
 {
     int ret = 0;
     struct i2c_client *client = sensor->client;
@@ -68,38 +66,24 @@ static int max9296_write(struct max9296 *sensor, uint16_t reg, uint8_t val)
     data[1] = (reg & 0x00FF); 
     data[2] = val;
 
-    client->addr = sensor->i2c_addr; 
+    client->addr = addr; 
     ret = i2c_master_send(client, data, 3);
 	if (ret < 0) {
 		pr_err("%s(): i2c write failed %d, 0x%04x = 0x%x\n", __func__, ret, reg, val);
         return -1;
     }   
-
-    // pr_info("max9296_write: %04x %02x\n", reg, val); 
 
     return 0;
 }
 
+static int max9296_write(struct max9296 *sensor, uint16_t reg, uint8_t val)
+{
+    return serdes_write(sensor, sensor->i2c_addr, reg, val);
+}
+
 static int max9295_write(struct max9296 *sensor, uint16_t reg, uint8_t val)
 {
-    int ret = 0;
-    struct i2c_client *client = sensor->client;
-    uint8_t data[3] = {0};
-    
-    data[0] = (reg & 0xFF00) >> 8; 
-    data[1] = (reg & 0x00FF); 
-    data[2] = val;
-
-    client->addr = DEVICE_ADDR_MAX9295;
-    ret = i2c_master_send(client, data, 3);
-	if (ret < 0) {
-		pr_err("%s(): i2c write failed %d, 0x%04x = 0x%x\n", __func__, ret, reg, val);
-        return -1;
-    }   
-    client->addr = sensor->i2c_addr; 
-    // pr_info("max9295_write: %04x %02x\n", reg, val); 
-
-    return 0;
+    return serdes_write(sensor, DEVICE_ADDR_MAX9295, reg, val);
 }
 
 static void registers_setup(struct max9296 *sensor)
@@ -175,13 +159,6 @@ static int max9296_set_stream(struct v4l2_subdev *sd, int enable)
         registers_setup(sensor);
         msleep(1000);
         pr_info("--> max9296_set_stream() start!\n");    
-        /*
-	    ret =  __v4l2_ctrl_handler_setup(sensor->sd.ctrl_handler);
-	    if (ret != 0)
-            pr_err("__v4l2_ctrl_handler_setup() fail (%d)\n", ret);
-		    return ret;
-        
-        */
     }
     else {        // stop stream 
         pr_info("--> max9296_set_stream() stop!\n");    
@@ -230,12 +207,6 @@ static int max9296_get_pad_format(struct v4l2_subdev *sd,  struct v4l2_subdev_st
 
 static int max9296_set_pad_format(struct v4l2_subdev *sd, struct v4l2_subdev_state *sd_state, struct v4l2_subdev_format *fmt)
 {
-    struct max9296 *sensor = to_max9296(sd);
-
-    mutex_lock(&sensor->mutex);    
-
-    mutex_unlock(&sensor->mutex);
-
     pr_info("--> max9296_set_pad_format()\n");
 
     return 0;
@@ -410,13 +381,13 @@ static const struct acpi_device_id max9296_acpi_ids[] = {
 MODULE_DEVICE_TABLE(acpi, max9296_acpi_ids);
 
 static const struct i2c_device_id max9296_id[] = {
-	{"max9296", 0},
+	{DEVICE_NAME_MAX9296, 0},
 	{ }
 };
 
 static struct i2c_driver max9296_driver = {
 	.driver = {
-		.name  = "max9296",
+		.name  = DEVICE_NAME_MAX9296,
 		.acpi_match_table = ACPI_PTR(max9296_acpi_ids),        
 	},
 	.probe_new = max9296_probe,
